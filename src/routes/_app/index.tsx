@@ -6,6 +6,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router'
 import { CalendarCheck } from 'lucide-react'
 import { toast } from 'sonner'
+import { InlineLog } from '#/components/inline-log'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
 import { Checkbox } from '#/components/ui/checkbox'
 import {
@@ -203,6 +204,8 @@ function Today() {
           ))}
         </div>
       )}
+
+      <InlineLog />
     </div>
   )
 }

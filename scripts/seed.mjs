@@ -45,9 +45,28 @@ try {
       (${systems.id}, 'Final project', 'assignment', ${day(30)}, true, 'normal', 'todo', null),
       (null, 'Renew parking permit', 'task', null, true, 'low', 'todo', null)`
 
+  const dayOf = (offset) => {
+    const d = new Date()
+    d.setDate(d.getDate() + offset)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  await sql`
+    insert into log_entries (date, kind, title, body, course_id)
+    values
+      (${dayOf(0)}, 'journal', null, ${'Office hours for the shell project, finally understood fork.' + String.fromCharCode(10) + 'Started the essay outline.'}, ${systems.id}),
+      (${dayOf(-1)}, 'journal', null, ${'Quiz went fine. Reading was heavier than expected.'}, null),
+      (${dayOf(-3)}, 'journal', 'Rough one', ${'Slept through the alarm and missed the first half of calc. Got notes from Priya.'}, ${calc.id}),
+      (${dayOf(-3)}, 'event', 'Advising appointment', ${'Registered for spring. Need one more elective.'}, null),
+      (${dayOf(-9)}, 'journal', null, ${'Long library session. Project 2 skeleton is done.'}, ${systems.id})`
+
   const counts = await sql`
-    select (select count(*) from courses) as courses, (select count(*) from items) as items`
-  console.log(`seeded ${counts[0].courses} courses and ${counts[0].items} items`)
+    select (select count(*) from courses) as courses,
+           (select count(*) from items) as items,
+           (select count(*) from log_entries) as entries`
+  console.log(
+    `seeded ${counts[0].courses} courses, ${counts[0].items} items, ${counts[0].entries} journal entries`,
+  )
 } finally {
   await sql.end()
 }
