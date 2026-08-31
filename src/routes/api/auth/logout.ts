@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useAppSession } from '#/lib/session'
+import { getAppSession } from '#/lib/session'
 
 export const Route = createFileRoute('/api/auth/logout')({
   server: {
     handlers: {
       // POST because it changes state. A GET would let any image tag log you out.
       POST: async () => {
-        const session = await useAppSession()
+        const session = await getAppSession()
         await session.clear()
         return new Response(null, { status: 302, headers: { Location: '/' } })
       },
@@ -15,7 +15,10 @@ export const Route = createFileRoute('/api/auth/logout')({
       GET: () =>
         new Response('Use POST to sign out.', {
           status: 405,
-          headers: { Allow: 'POST', 'Content-Type': 'text/plain; charset=utf-8' },
+          headers: {
+            Allow: 'POST',
+            'Content-Type': 'text/plain; charset=utf-8',
+          },
         }),
     },
   },

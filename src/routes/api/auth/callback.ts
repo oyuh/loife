@@ -5,7 +5,7 @@ import {
   fetchGitHubUser,
   isAllowedUser,
 } from '#/lib/github'
-import { useAppSession } from '#/lib/session'
+import { getAppSession } from '#/lib/session'
 
 function deny(message: string): Response {
   return new Response(message, {
@@ -27,7 +27,9 @@ export const Route = createFileRoute('/api/auth/callback')({
         deleteCookie('loife_oauth_state', { path: '/' })
 
         if (!code || !state || !expectedState || state !== expectedState) {
-          return deny('OAuth state check failed. Start again from the sign in link.')
+          return deny(
+            'OAuth state check failed. Start again from the sign in link.',
+          )
         }
 
         const token = await exchangeCodeForToken(code)
@@ -37,7 +39,7 @@ export const Route = createFileRoute('/api/auth/callback')({
           return deny('This app has one user and your account is not it.')
         }
 
-        const session = await useAppSession()
+        const session = await getAppSession()
         await session.update({
           githubId: user.id,
           login: user.login,
