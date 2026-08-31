@@ -8,7 +8,8 @@
 export interface SyncableItem {
   name: string
   type: string
-  priority: string
+  /** 1 is most urgent through 5 is least. */
+  priority: number
   dueAt: Date | null
   allDay: boolean
   location: string | null
@@ -43,7 +44,7 @@ export function toCalendarEvent(
   const details = [
     options.courseLabel,
     item.type,
-    item.priority === 'normal' ? null : `${item.priority} priority`,
+    item.priority === 3 ? null : `priority ${item.priority}`,
     item.notes,
   ].filter(Boolean)
 

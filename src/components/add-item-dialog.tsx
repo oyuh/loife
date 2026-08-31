@@ -49,6 +49,11 @@ import {
 } from '#/components/ui/popover'
 import { toDueFields, toDueValue } from '#/lib/due-date'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
+import {
+  DEFAULT_PRIORITY,
+  PRIORITY_LABELS,
+  PRIORITY_LEVELS,
+} from '#/lib/urgency'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { cn } from '#/lib/utils'
 import {
@@ -65,11 +70,12 @@ const TYPES = [
   { value: 'reading', label: 'Reading' },
 ] as const
 
-const PRIORITIES = [
-  { value: 'low', label: 'Low' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'high', label: 'High' },
-] as const
+/** 1 is most urgent through 5 is least, blended with the due date when sorting. */
+const PRIORITIES = PRIORITY_LEVELS.map((level) => ({
+  value: String(level),
+  label: `P${level}`,
+  hint: PRIORITY_LABELS[level],
+}))
 
 const EMPTY = {
   name: '',
@@ -77,7 +83,7 @@ const EMPTY = {
   type: 'assignment',
   date: '',
   time: '',
-  priority: 'normal',
+  priority: String(DEFAULT_PRIORITY),
   location: '',
   notes: '',
 }
@@ -108,7 +114,7 @@ export function AddItemDialog({
       type: item.type,
       date: due.date,
       time: due.time,
-      priority: item.priority,
+      priority: String(item.priority),
       location: item.location ?? '',
       notes: item.notes ?? '',
     })
@@ -125,7 +131,7 @@ export function AddItemDialog({
         type: form.type as (typeof TYPES)[number]['value'],
         dueAt,
         allDay,
-        priority: form.priority as (typeof PRIORITIES)[number]['value'],
+        priority: Number(form.priority),
         location: form.location,
         notes: form.notes,
       }
@@ -378,7 +384,7 @@ function AddItemForm({
         <Field>
           <FieldLabel>Priority</FieldLabel>
           <Choicebox
-            className="grid grid-cols-3 gap-2"
+            className="grid grid-cols-5 gap-2"
             onValueChange={(value) => set('priority', value)}
             value={form.priority}
           >
@@ -389,12 +395,17 @@ function AddItemForm({
                 value={option.value}
               >
                 <ChoiceboxItemHeader>
-                  <ChoiceboxItemTitle>{option.label}</ChoiceboxItemTitle>
+                  <ChoiceboxItemTitle title={option.hint}>
+                    {option.label}
+                  </ChoiceboxItemTitle>
                 </ChoiceboxItemHeader>
-                <ChoiceboxIndicator />
               </ChoiceboxItem>
             ))}
           </Choicebox>
+          <p className="text-muted-foreground text-xs">
+            {PRIORITY_LABELS[Number(form.priority)]}. Blended with the due date,
+            so a P1 next week can outrank a P5 tomorrow.
+          </p>
         </Field>
 
         <Field className="min-w-0">

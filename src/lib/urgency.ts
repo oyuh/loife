@@ -19,9 +19,21 @@ export type Bucket =
 export interface Urgent {
   dueAt: Date | null
   allDay: boolean
-  priority: 'low' | 'normal' | 'high'
+  /** 1 is most urgent through 5 is least. 3 is the default. */
+  priority: number
   status: 'todo' | 'doing' | 'done'
   name: string
+}
+
+export const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const
+export const DEFAULT_PRIORITY = 3
+
+export const PRIORITY_LABELS: Record<number, string> = {
+  1: 'Drop everything',
+  2: 'High',
+  3: 'Normal',
+  4: 'Low',
+  5: 'Whenever',
 }
 
 export const BUCKET_ORDER: readonly Bucket[] = [
@@ -40,12 +52,6 @@ export const BUCKET_LABELS: Record<Bucket, string> = {
   week: 'Next 7 days',
   later: 'Later',
   someday: 'No date',
-}
-
-const PRIORITY_RANK: Record<Urgent['priority'], number> = {
-  high: 0,
-  normal: 1,
-  low: 2,
 }
 
 const MS_PER_DAY = 86_400_000
@@ -82,13 +88,43 @@ export function bucketFor(item: Urgent, now: Date): Bucket {
   return 'later'
 }
 
+/** Each step of priority is worth this many days of urgency. */
+const DAYS_PER_PRIORITY_STEP = 2
+
+/** An item with no due date sits this far out before priority moves it. */
+const UNDATED_HORIZON_DAYS = 30
+
 /**
- * Priority first, because ranking work is the point of having the field, then
- * the clock, then the name so the order never wobbles between renders.
+ * One number combining when a thing is due with how much it matters, lower
+ * being more urgent.
+ *
+ * Three named levels could only ever break ties inside a day. Blending them
+ * means a 1 due Friday can outrank a 5 due tomorrow, which is the behaviour
+ * worth having, and a step of two days is what sets that exchange rate.
  */
-export function compareUrgency(a: Urgent, b: Urgent): number {
-  const byPriority = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]
-  if (byPriority !== 0) return byPriority
+export function urgencyScore(item: Urgent, now: Date = new Date()): number {
+  const days = item.dueAt
+    ? calendarDaysBetween(now, item.dueAt)
+    : UNDATED_HORIZON_DAYS
+
+  const priority = Number.isFinite(item.priority)
+    ? item.priority
+    : DEFAULT_PRIORITY
+
+  return days + (priority - DEFAULT_PRIORITY) * DAYS_PER_PRIORITY_STEP
+}
+
+/**
+ * Score first, then the clock, then the name so the order never wobbles
+ * between renders.
+ */
+export function compareUrgency(
+  a: Urgent,
+  b: Urgent,
+  now: Date = new Date(),
+): number {
+  const byScore = urgencyScore(a, now) - urgencyScore(b, now)
+  if (byScore !== 0) return byScore
 
   const aTime = a.dueAt?.getTime() ?? Number.POSITIVE_INFINITY
   const bTime = b.dueAt?.getTime() ?? Number.POSITIVE_INFINITY
@@ -125,7 +161,9 @@ export function groupByUrgency<T extends Urgent>(
   return BUCKET_ORDER.filter((bucket) => groups.has(bucket)).map((bucket) => ({
     bucket,
     label: BUCKET_LABELS[bucket],
-    items: (groups.get(bucket) as T[]).sort(compareUrgency),
+    items: (groups.get(bucket) as T[]).sort((a, b) =>
+      compareUrgency(a, b, now),
+    ),
   }))
 }
 

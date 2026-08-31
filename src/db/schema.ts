@@ -20,7 +20,6 @@ export const itemType = pgEnum('item_type', [
   'task',
   'reading',
 ])
-export const itemPriority = pgEnum('item_priority', ['low', 'normal', 'high'])
 export const itemStatus = pgEnum('item_status', ['todo', 'doing', 'done'])
 export const logKind = pgEnum('log_kind', ['journal', 'event'])
 
@@ -70,7 +69,9 @@ export const items = pgTable('items', {
   dueAt: timestamp('due_at', { withTimezone: true }),
   // True when you gave a date with no time, which becomes an all-day event.
   allDay: boolean('all_day').notNull().default(false),
-  priority: itemPriority('priority').notNull().default('normal'),
+  // 1 is most urgent through 5 is least. A number sorts and blends with days
+  // remaining in a way three named levels cannot.
+  priority: smallint('priority').notNull().default(3),
   status: itemStatus('status').notNull().default('todo'),
   location: text('location'),
   notes: text('notes'),

@@ -16,7 +16,7 @@ export interface ItemRow {
   type: 'assignment' | 'exam' | 'task' | 'reading'
   dueAt: Date | null
   allDay: boolean
-  priority: 'low' | 'normal' | 'high'
+  priority: number
   status: 'todo' | 'doing' | 'done'
   location: string | null
   notes: string | null
@@ -101,7 +101,7 @@ const createInput = z.object({
   type: z.enum(['assignment', 'exam', 'task', 'reading']),
   dueAt: z.coerce.date().nullable(),
   allDay: z.boolean(),
-  priority: z.enum(['low', 'normal', 'high']),
+  priority: z.number().int().min(1).max(5),
   location: z.string().max(200).nullable().transform(emptyToNull),
   notes: z.string().max(2000).nullable().transform(emptyToNull),
 })

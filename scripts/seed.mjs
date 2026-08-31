@@ -34,16 +34,16 @@ try {
   await sql`
     insert into items (course_id, name, type, due_at, all_day, priority, status, location)
     values
-      (${systems.id}, 'Project 2: shell', 'assignment', ${day(-2)}, true, 'high', 'todo', null),
-      (${calc.id}, 'Problem set 6', 'assignment', ${day(-1)}, true, 'normal', 'todo', null),
-      (${systems.id}, 'Reading: pipes and forks', 'reading', ${day(0, 9, 0)}, false, 'low', 'todo', null),
-      (${writing.id}, 'Draft of essay 2', 'assignment', ${day(0, 23, 59)}, true, 'high', 'todo', null),
-      (${calc.id}, 'Quiz 4', 'exam', ${day(0, 13, 0)}, false, 'normal', 'done', 'FN 2.102'),
-      (${writing.id}, 'Peer review response', 'task', ${day(1)}, true, 'normal', 'todo', null),
-      (${calc.id}, 'Midterm 2', 'exam', ${day(4, 13, 0)}, false, 'high', 'todo', 'FN 2.102'),
-      (${systems.id}, 'Project 3 proposal', 'assignment', ${day(6)}, true, 'normal', 'todo', null),
-      (${systems.id}, 'Final project', 'assignment', ${day(30)}, true, 'normal', 'todo', null),
-      (null, 'Renew parking permit', 'task', null, true, 'low', 'todo', null)`
+      (${systems.id}, 'Project 2: shell', 'assignment', ${day(-2)}, true, 2, 'todo', null),
+      (${calc.id}, 'Problem set 6', 'assignment', ${day(-1)}, true, 3, 'todo', null),
+      (${systems.id}, 'Reading: pipes and forks', 'reading', ${day(0, 9, 0)}, false, 4, 'todo', null),
+      (${writing.id}, 'Draft of essay 2', 'assignment', ${day(0, 23, 59)}, true, 2, 'todo', null),
+      (${calc.id}, 'Quiz 4', 'exam', ${day(0, 13, 0)}, false, 3, 'done', 'FN 2.102'),
+      (${writing.id}, 'Peer review response', 'task', ${day(1)}, true, 3, 'todo', null),
+      (${calc.id}, 'Midterm 2', 'exam', ${day(4, 13, 0)}, false, 2, 'todo', 'FN 2.102'),
+      (${systems.id}, 'Project 3 proposal', 'assignment', ${day(6)}, true, 3, 'todo', null),
+      (${systems.id}, 'Final project', 'assignment', ${day(30)}, true, 3, 'todo', null),
+      (null, 'Renew parking permit', 'task', null, true, 4, 'todo', null)`
 
   const dayOf = (offset) => {
     const d = new Date()

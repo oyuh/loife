@@ -18,7 +18,7 @@ const make = (over: Partial<Urgent> = {}): Urgent => ({
   name: 'thing',
   dueAt: null,
   allDay: true,
-  priority: 'normal',
+  priority: 3,
   status: 'todo',
   ...over,
 })
@@ -63,8 +63,8 @@ console.log('ok  late-evening items stay on today')
 // Priority ranks above the clock inside a bucket.
 const groups = groupByUrgency(
   [
-    make({ name: 'low but early', dueAt: at('2026-09-15T09:00:00'), priority: 'low' }),
-    make({ name: 'high but late', dueAt: at('2026-09-15T22:00:00'), priority: 'high' }),
+    make({ name: 'low but early', dueAt: at('2026-09-15T09:00:00'), priority: 4 }),
+    make({ name: 'high but late', dueAt: at('2026-09-15T22:00:00'), priority: 2 }),
     make({ name: 'normal midday', dueAt: at('2026-09-15T12:00:00') }),
   ],
   now,
@@ -195,7 +195,7 @@ const { toCalendarEvent, localDateString } = await import(
 const calItem = (over: Record<string, unknown> = {}) => ({
   name: 'Problem set 7',
   type: 'assignment',
-  priority: 'normal',
+  priority: 3,
   dueAt: at('2026-09-15T23:59:00'),
   allDay: true,
   location: null,
@@ -357,3 +357,56 @@ assert.equal(
 console.log('ok  no times or no dates still means no event')
 
 console.log('\nirregular meeting checks passed')
+
+// --- the blended urgency score ------------------------------------------
+
+const { urgencyScore, DEFAULT_PRIORITY } = await import('../src/lib/urgency.ts')
+
+const scored = (over: Partial<Urgent>) => urgencyScore(make(over), now)
+
+// A default priority scores purely on the clock.
+assert.equal(scored({ dueAt: at('2026-09-15T09:00:00'), priority: 3 }), 0)
+assert.equal(scored({ dueAt: at('2026-09-20T09:00:00'), priority: 3 }), 5)
+console.log('ok  at the default priority the score is just days remaining')
+
+// This is the whole point of a number. A P1 five days out beats a P5 tomorrow.
+const importantLater = scored({ dueAt: at('2026-09-20T09:00:00'), priority: 1 })
+const trivialSooner = scored({ dueAt: at('2026-09-16T09:00:00'), priority: 5 })
+assert.ok(
+  importantLater < trivialSooner,
+  `P1 in five days (${importantLater}) must beat P5 tomorrow (${trivialSooner})`,
+)
+console.log('ok  a P1 next week outranks a P5 tomorrow')
+
+// Priority alone never jumps an arbitrary distance. Two steps is four days,
+// so a P1 three weeks out stays behind a P3 due today.
+assert.ok(
+  scored({ dueAt: at('2026-10-06T09:00:00'), priority: 1 }) >
+    scored({ dueAt: at('2026-09-15T09:00:00'), priority: 3 }),
+  'priority does not outweigh three weeks',
+)
+console.log('ok  priority bends the order without overturning it')
+
+// A low priority overdue item can score the same as a normal one due soon,
+// and that is fine: the bucket decides what leads, the score only orders
+// within a bucket. This pins that division of labour down.
+const lateAndTrivial = make({ dueAt: at('2026-09-13T09:00:00'), priority: 5 })
+const soonAndNormal = make({ dueAt: at('2026-09-17T09:00:00'), priority: 3 })
+assert.equal(scored({ dueAt: at('2026-09-13T09:00:00'), priority: 5 }), 2)
+assert.equal(scored({ dueAt: at('2026-09-17T09:00:00'), priority: 3 }), 2)
+assert.equal(bucketFor(lateAndTrivial, now), 'overdue')
+assert.equal(bucketFor(soonAndNormal, now), 'week')
+assert.deepEqual(
+  groupByUrgency([soonAndNormal, lateAndTrivial], now).map((g) => g.bucket),
+  ['overdue', 'week'],
+  'the bucket puts overdue first even on an equal score',
+)
+console.log('ok  buckets decide what leads, the score orders within one')
+
+// No due date sits far out until priority pulls it in.
+assert.ok(scored({ dueAt: null, priority: 3 }) > scored({ dueAt: at('2026-10-01T09:00:00'), priority: 3 }))
+assert.ok(scored({ dueAt: null, priority: 1 }) < scored({ dueAt: null, priority: 5 }))
+console.log('ok  undated work is deferred but still ranks by priority')
+
+assert.equal(DEFAULT_PRIORITY, 3)
+console.log('\nurgency score checks passed')

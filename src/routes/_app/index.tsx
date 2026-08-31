@@ -32,7 +32,13 @@ import {
   ItemTitle,
 } from '#/components/ui/item'
 import { itemsQuery } from '#/lib/queries'
-import { BUCKET_COLORS, groupByUrgency, overdueCount } from '#/lib/urgency'
+import {
+  BUCKET_COLORS,
+  DEFAULT_PRIORITY,
+  groupByUrgency,
+  overdueCount,
+  PRIORITY_LABELS,
+} from '#/lib/urgency'
 import { cn } from '#/lib/utils'
 import { type ItemRow, setItemStatus } from '#/server/items'
 
@@ -51,7 +57,13 @@ const timeFormat = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit',
 })
 
-const PRIORITY_INDICATOR = { high: 'error', low: 'success' } as const
+/** 1 and 2 are urgent, 4 and 5 are deferred, 3 says nothing worth a pill. */
+const PRIORITY_INDICATOR: Record<number, 'error' | 'warning' | 'success'> = {
+  1: 'error',
+  2: 'warning',
+  4: 'success',
+  5: 'success',
+}
 
 function Today() {
   const { data: items } = useSuspenseQuery(itemsQuery)
@@ -215,17 +227,15 @@ function Today() {
                           </ItemContent>
                         </button>
 
-                        {/* Normal is the default and says nothing, so only the
+                        {/* P3 is the default and says nothing, so only the
                           deviations get a pill. */}
-                        {!done && item.priority !== 'normal' && (
+                        {!done && item.priority !== DEFAULT_PRIORITY && (
                           <ItemActions>
-                            <Pill>
+                            <Pill title={PRIORITY_LABELS[item.priority]}>
                               <PillIndicator
                                 variant={PRIORITY_INDICATOR[item.priority]}
                               />
-                              <span className="capitalize">
-                                {item.priority}
-                              </span>
+                              P{item.priority}
                             </Pill>
                           </ItemActions>
                         )}

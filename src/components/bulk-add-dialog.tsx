@@ -32,6 +32,11 @@ import { Textarea } from '#/components/ui/textarea'
 import { toDueFields, toDueValue } from '#/lib/due-date'
 import { parseSyllabus } from '#/lib/parse-syllabus'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
+import {
+  DEFAULT_PRIORITY,
+  PRIORITY_LABELS,
+  PRIORITY_LEVELS,
+} from '#/lib/urgency'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { createItems } from '#/server/items'
 
@@ -59,7 +64,7 @@ export function BulkAddDialog({
   const [removed, setRemoved] = useState<Set<string>>(new Set())
   const [courseId, setCourseId] = useState('')
   const [type, setType] = useState('assignment')
-  const [priority, setPriority] = useState('normal')
+  const [priority, setPriority] = useState(String(DEFAULT_PRIORITY))
 
   const queryClient = useQueryClient()
   const isDesktop = useMediaQuery('(min-width: 640px)')
@@ -107,7 +112,7 @@ export function BulkAddDialog({
               type: type as 'assignment' | 'exam' | 'task' | 'reading',
               dueAt,
               allDay,
-              priority: priority as 'low' | 'normal' | 'high',
+              priority: Number(priority),
               location: null,
               notes: null,
             }
@@ -184,9 +189,11 @@ export function BulkAddDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="high">High</SelectItem>
+                {PRIORITY_LEVELS.map((level) => (
+                  <SelectItem key={level} value={String(level)}>
+                    P{level} · {PRIORITY_LABELS[level]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
