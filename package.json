@@ -13,7 +13,11 @@
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
-    "start": "node .output/server/index.mjs"
+    "start": "node .output/server/index.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:check": "node scripts/check-schema.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -38,6 +42,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/router-cli": "^1.132.0",
