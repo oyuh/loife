@@ -122,3 +122,38 @@ assert.equal(
 console.log('ok  overdue count ignores finished work')
 
 console.log('\nurgency check passed')
+
+// --- due-date field conversion ------------------------------------------
+
+const { toDueValue, toDueFields } = await import('../src/lib/due-date.ts')
+
+// The UTC trap: a bare date string must not shift the calendar day.
+const endOfDay = toDueValue({ date: '2026-09-15', time: '' })
+assert.equal(endOfDay.allDay, true)
+assert.equal(endOfDay.dueAt?.getDate(), 15, 'the day must not shift')
+assert.equal(endOfDay.dueAt?.getMonth(), 8, 'September')
+assert.equal(endOfDay.dueAt?.getHours(), 23, 'no time means due by end of day')
+console.log('ok  a date with no time lands on that day at 23:59 local')
+
+const timed = toDueValue({ date: '2026-09-15', time: '17:30' })
+assert.equal(timed.allDay, false)
+assert.equal(timed.dueAt?.getHours(), 17)
+assert.equal(timed.dueAt?.getMinutes(), 30)
+console.log('ok  a date with a time is not all day')
+
+assert.deepEqual(toDueValue({ date: '', time: '' }), { dueAt: null, allDay: true })
+assert.deepEqual(toDueValue({ date: '', time: '09:00' }), { dueAt: null, allDay: true })
+console.log('ok  no date means no due date, whatever the time says')
+
+// Round tripping through the form must not drift.
+for (const fields of [
+  { date: '2026-09-15', time: '' },
+  { date: '2026-01-01', time: '00:00' },
+  { date: '2026-12-31', time: '23:59' },
+  { date: '', time: '' },
+]) {
+  assert.deepEqual(toDueFields(toDueValue(fields)), fields, `round trip ${JSON.stringify(fields)}`)
+}
+console.log('ok  form values survive a round trip')
+
+console.log('\ndate checks passed')

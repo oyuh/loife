@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
+import { z } from 'zod'
 import { db } from '#/db'
 import { courses, items } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
@@ -70,3 +71,47 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
     )
   },
 )
+
+// A server function is an HTTP endpoint, so its input is parsed rather than
+// trusted, even though this app has one user.
+const statusInput = z.object({
+  id: z.number().int().positive(),
+  status: z.enum(['todo', 'doing', 'done']),
+})
+
+export const setItemStatus = createServerFn({ method: 'POST' })
+  .validator(statusInput)
+  .handler(async ({ data }) => {
+    await requireUser()
+    await db
+      .update(items)
+      .set({ status: data.status })
+      .where(eq(items.id, data.id))
+  })
+
+const emptyToNull = (value: string | null | undefined) => {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+const createInput = z.object({
+  name: z.string().trim().min(1, 'Give it a name').max(200),
+  courseId: z.number().int().positive().nullable(),
+  type: z.enum(['assignment', 'exam', 'task', 'reading']),
+  dueAt: z.coerce.date().nullable(),
+  allDay: z.boolean(),
+  priority: z.enum(['low', 'normal', 'high']),
+  location: z.string().max(200).nullable().transform(emptyToNull),
+  notes: z.string().max(2000).nullable().transform(emptyToNull),
+})
+
+export const createItem = createServerFn({ method: 'POST' })
+  .validator(createInput)
+  .handler(async ({ data }) => {
+    await requireUser()
+    const [row] = await db
+      .insert(items)
+      .values(data)
+      .returning({ id: items.id })
+    return row
+  })

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { BookOpen, CalendarCheck, NotebookPen } from 'lucide-react'
+import { BookOpen, CalendarCheck, NotebookPen, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 const TABS = [
@@ -8,12 +8,24 @@ const TABS = [
   { to: '/journal', label: 'Journal', icon: NotebookPen },
 ] as const
 
+const TAB_CLASS =
+  'group flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-xs ' +
+  'text-muted-foreground data-[active=true]:text-foreground ' +
+  'md:min-h-11 md:flex-none md:flex-row md:justify-start md:gap-3 md:rounded-md ' +
+  'md:px-2 md:text-sm md:hover:bg-accent'
+
 /**
  * One nav element for both layouts. It sits along the bottom on a phone and
  * becomes a left rail from `md` up, so there is no duplicated markup and no
  * second set of links to keep in sync.
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  onAddItem,
+}: {
+  children: ReactNode
+  onAddItem: () => void
+}) {
   return (
     <div className="min-h-dvh md:flex">
       <nav
@@ -32,16 +44,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             key={to}
             to={to}
             activeOptions={{ exact: to === '/' }}
-            activeProps={{
-              'data-active': 'true',
-              'aria-current': 'page',
-            }}
-            className="group flex min-h-14 flex-1 flex-col items-center justify-center gap-1
-                       text-xs text-muted-foreground
-                       data-[active=true]:text-foreground
-                       md:min-h-11 md:flex-none md:flex-row md:justify-start md:gap-3
-                       md:rounded-md md:px-2 md:text-sm
-                       md:hover:bg-accent"
+            activeProps={{ 'data-active': 'true', 'aria-current': 'page' }}
+            className={TAB_CLASS}
           >
             <Icon className="size-5 md:size-4" aria-hidden="true" />
             <span className="group-data-[active=true]:underline group-data-[active=true]:underline-offset-4 md:no-underline">
@@ -49,6 +53,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
         ))}
+
+        <button type="button" onClick={onAddItem} className={TAB_CLASS}>
+          <Plus className="size-5 md:size-4" aria-hidden="true" />
+          <span>Add</span>
+        </button>
 
         <form
           method="post"

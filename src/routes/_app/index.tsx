@@ -1,12 +1,19 @@
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { toast } from 'sonner'
 import { Checkbox } from '#/components/ui/checkbox'
+import { itemsQuery } from '#/lib/queries'
 import { groupByUrgency, overdueCount } from '#/lib/urgency'
 import { cn } from '#/lib/utils'
-import { type ItemRow, listItems } from '#/server/items'
+import { type ItemRow, setItemStatus } from '#/server/items'
 
 export const Route = createFileRoute('/_app/')({
   component: Today,
-  loader: () => listItems(),
+  loader: ({ context }) => context.queryClient.ensureQueryData(itemsQuery),
 })
 
 const dayFormat = new Intl.DateTimeFormat(undefined, {
@@ -20,7 +27,37 @@ const timeFormat = new Intl.DateTimeFormat(undefined, {
 })
 
 function Today() {
-  const items = Route.useLoaderData()
+  const { data: items } = useSuspenseQuery(itemsQuery)
+  const queryClient = useQueryClient()
+
+  const toggle = useMutation({
+    mutationFn: (vars: { id: number; status: ItemRow['status'] }) =>
+      setItemStatus({ data: vars }),
+
+    // Paint the change before the round trip, so a tap never waits on the
+    // network. The snapshot is what makes putting it back possible.
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: itemsQuery.queryKey })
+      const previous = queryClient.getQueryData<ItemRow[]>(itemsQuery.queryKey)
+      queryClient.setQueryData<ItemRow[]>(itemsQuery.queryKey, (old) =>
+        old?.map((item) =>
+          item.id === vars.id ? { ...item, status: vars.status } : item,
+        ),
+      )
+      return { previous }
+    },
+
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(itemsQuery.queryKey, context.previous)
+      }
+      toast.error('Could not save that, so it is back how it was.')
+    },
+
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey }),
+  })
+
   const now = new Date()
   const groups = groupByUrgency(items, now)
   const late = overdueCount(items, now)
@@ -58,7 +95,16 @@ function Today() {
               </h2>
               <ul className="divide-y divide-border border-y border-border">
                 {group.items.map((item) => (
-                  <ItemLine key={item.id} item={item} />
+                  <ItemLine
+                    key={item.id}
+                    item={item}
+                    onToggle={(done) =>
+                      toggle.mutate({
+                        id: item.id,
+                        status: done ? 'done' : 'todo',
+                      })
+                    }
+                  />
                 ))}
               </ul>
             </section>
@@ -69,17 +115,22 @@ function Today() {
   )
 }
 
-function ItemLine({ item }: { item: ItemRow }) {
+function ItemLine({
+  item,
+  onToggle,
+}: {
+  item: ItemRow
+  onToggle: (done: boolean) => void
+}) {
   const done = item.status === 'done'
 
   return (
     <li className="flex min-h-14 items-center gap-3 py-2">
-      {/* Toggling arrives in phase 4, so this reads state without setting it. */}
       <Checkbox
         checked={done}
-        disabled
+        onCheckedChange={(checked) => onToggle(checked === true)}
         aria-label={item.name}
-        className="shrink-0"
+        className="size-5 shrink-0"
       />
 
       <div className="min-w-0 flex-1">
@@ -111,9 +162,9 @@ function ItemLine({ item }: { item: ItemRow }) {
 function EmptyState() {
   return (
     <div className="rounded-lg border border-dashed border-border px-5 py-12 text-center">
-      <p className="font-medium">Nothing here yet</p>
+      <p className="font-medium">Nothing due</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        Adding courses and assignments arrives in phase 4.
+        Use Add in the nav, or press ⌘K, to put something here.
       </p>
     </div>
   )

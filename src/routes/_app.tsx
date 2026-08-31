@@ -1,5 +1,9 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { useState } from 'react'
+import { AddItemDialog } from '#/components/add-item-dialog'
 import { AppShell } from '#/components/app-shell'
+import { CommandPalette } from '#/components/command-palette'
+import { Toaster } from '#/components/ui/sonner'
 import { fetchCurrentUser } from '#/server/auth'
 
 /**
@@ -13,9 +17,23 @@ export const Route = createFileRoute('/_app')({
     if (!user) throw redirect({ to: '/signin' })
     return { user }
   },
-  component: () => (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  ),
+  component: AppLayout,
 })
+
+function AppLayout() {
+  // The add dialog is reachable from the nav and the palette, so its state
+  // lives here rather than in either one.
+  const [adding, setAdding] = useState(false)
+
+  return (
+    <>
+      <AppShell onAddItem={() => setAdding(true)}>
+        <Outlet />
+      </AppShell>
+
+      <AddItemDialog open={adding} onOpenChange={setAdding} />
+      <CommandPalette onAddItem={() => setAdding(true)} />
+      <Toaster position="top-center" />
+    </>
+  )
+}
