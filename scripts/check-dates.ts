@@ -5,6 +5,7 @@
  */
 import assert from 'node:assert/strict'
 import {
+  calendarDaysBetween,
   bucketFor,
   groupByUrgency,
   overdueCount,
@@ -157,3 +158,30 @@ for (const fields of [
 console.log('ok  form values survive a round trip')
 
 console.log('\ndate checks passed')
+
+// --- dropping an item on a bucket reschedules it -------------------------
+
+const { dueDateForBucket } = await import('../src/lib/urgency.ts')
+
+assert.equal(dueDateForBucket('overdue', now), null, 'overdue is not a drop target')
+assert.deepEqual(dueDateForBucket('someday', now), { dueAt: null }, 'someday clears the date')
+console.log('ok  overdue rejects drops, someday clears the date')
+
+for (const [bucket, offset] of [['today', 0], ['tomorrow', 1], ['week', 7], ['later', 30]] as const) {
+  const result = dueDateForBucket(bucket, now)
+  assert.ok(result?.dueAt, `${bucket} produces a date`)
+  assert.equal(
+    calendarDaysBetween(now, result.dueAt as Date),
+    offset,
+    `${bucket} lands ${offset} days out`,
+  )
+  // The point of rescheduling is that the item then sorts into that bucket.
+  assert.equal(
+    bucketFor(make({ dueAt: result.dueAt, allDay: true }), now),
+    bucket,
+    `an item dropped on ${bucket} reads back as ${bucket}`,
+  )
+}
+console.log('ok  every drop target round trips back to its own bucket')
+
+console.log('\nreschedule checks passed')

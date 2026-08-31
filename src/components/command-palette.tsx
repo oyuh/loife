@@ -8,7 +8,9 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandShortcut,
 } from '#/components/ui/command'
+import { Kbd } from '#/components/ui/kbd'
 
 export function CommandPalette({ onAddItem }: { onAddItem: () => void }) {
   const [open, setOpen] = useState(false)
@@ -47,6 +49,9 @@ export function CommandPalette({ onAddItem }: { onAddItem: () => void }) {
           <CommandItem onSelect={() => run(onAddItem)}>
             <Plus />
             Add assignment
+            <CommandShortcut>
+              <Kbd>A</Kbd>
+            </CommandShortcut>
           </CommandItem>
         </CommandGroup>
 

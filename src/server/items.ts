@@ -115,3 +115,20 @@ export const createItem = createServerFn({ method: 'POST' })
       .returning({ id: items.id })
     return row
   })
+
+const dueInput = z.object({
+  id: z.number().int().positive(),
+  dueAt: z.coerce.date().nullable(),
+  allDay: z.boolean(),
+})
+
+/** Backs dragging a row onto another group in the Today list. */
+export const setItemDue = createServerFn({ method: 'POST' })
+  .validator(dueInput)
+  .handler(async ({ data }) => {
+    await requireUser()
+    await db
+      .update(items)
+      .set({ dueAt: data.dueAt, allDay: data.allDay })
+      .where(eq(items.id, data.id))
+  })

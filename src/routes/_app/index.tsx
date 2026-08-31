@@ -4,10 +4,27 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { CalendarCheck } from 'lucide-react'
 import { toast } from 'sonner'
+import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
 import { Checkbox } from '#/components/ui/checkbox'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '#/components/ui/empty'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from '#/components/ui/item'
 import { itemsQuery } from '#/lib/queries'
-import { groupByUrgency, overdueCount } from '#/lib/urgency'
+import { BUCKET_COLORS, groupByUrgency, overdueCount } from '#/lib/urgency'
 import { cn } from '#/lib/utils'
 import { type ItemRow, setItemStatus } from '#/server/items'
 
@@ -26,36 +43,48 @@ const timeFormat = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit',
 })
 
+const PRIORITY_INDICATOR = { high: 'error', low: 'success' } as const
+
 function Today() {
   const { data: items } = useSuspenseQuery(itemsQuery)
   const queryClient = useQueryClient()
 
-  const toggle = useMutation({
-    mutationFn: (vars: { id: number; status: ItemRow['status'] }) =>
-      setItemStatus({ data: vars }),
+  /**
+   * Paints one row before the round trip and hands back the snapshot that
+   * makes putting it back possible. Both mutations edit a single row in the
+   * same list, so they share this.
+   */
+  const patchRow = async (id: number, patch: Partial<ItemRow>) => {
+    await queryClient.cancelQueries({ queryKey: itemsQuery.queryKey })
+    const previous = queryClient.getQueryData<ItemRow[]>(itemsQuery.queryKey)
+    queryClient.setQueryData<ItemRow[]>(itemsQuery.queryKey, (old) =>
+      old?.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    )
+    return { previous }
+  }
 
-    // Paint the change before the round trip, so a tap never waits on the
-    // network. The snapshot is what makes putting it back possible.
-    onMutate: async (vars) => {
-      await queryClient.cancelQueries({ queryKey: itemsQuery.queryKey })
-      const previous = queryClient.getQueryData<ItemRow[]>(itemsQuery.queryKey)
-      queryClient.setQueryData<ItemRow[]>(itemsQuery.queryKey, (old) =>
-        old?.map((item) =>
-          item.id === vars.id ? { ...item, status: vars.status } : item,
-        ),
-      )
-      return { previous }
-    },
-
-    onError: (_error, _vars, context) => {
+  const rollback =
+    (message: string) =>
+    (
+      _error: unknown,
+      _vars: unknown,
+      context: { previous?: ItemRow[] } | undefined,
+    ) => {
       if (context?.previous) {
         queryClient.setQueryData(itemsQuery.queryKey, context.previous)
       }
-      toast.error('Could not save that, so it is back how it was.')
-    },
+      toast.error(message)
+    }
 
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey }),
+  const settle = () =>
+    queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey })
+
+  const toggle = useMutation({
+    mutationFn: (vars: { id: number; status: ItemRow['status'] }) =>
+      setItemStatus({ data: vars }),
+    onMutate: (vars) => patchRow(vars.id, { status: vars.status }),
+    onError: rollback('Could not save that, so it is back how it was.'),
+    onSettled: settle,
   })
 
   const now = new Date()
@@ -64,108 +93,116 @@ function Today() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 py-8">
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Today</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <header className="mb-6">
+        <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
+        <p className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
           {dayFormat.format(now)}
-          {late > 0 && (
-            <>
-              {' · '}
-              <span className="text-destructive">{late} overdue</span>
-            </>
-          )}
+          {late > 0 && <span className="text-destructive">{late} overdue</span>}
         </p>
       </header>
 
       {groups.length === 0 ? (
-        <EmptyState />
+        <Empty className="border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <CalendarCheck />
+            </EmptyMedia>
+            <EmptyTitle>Nothing due</EmptyTitle>
+            <EmptyDescription>
+              Use Add in the nav, or press ⌘K, to put something here.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="space-y-8">
           {groups.map((group) => (
             <section key={group.bucket}>
-              <h2
-                className={cn(
-                  'mb-2 text-xs font-medium uppercase tracking-wide',
-                  group.bucket === 'overdue'
-                    ? 'text-destructive'
-                    : 'text-muted-foreground',
-                )}
-              >
+              <h2 className="mb-1 flex items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                <span
+                  className="size-1.5 rounded-full"
+                  style={{ backgroundColor: BUCKET_COLORS[group.bucket] }}
+                />
                 {group.label}
               </h2>
-              <ul className="divide-y divide-border border-y border-border">
-                {group.items.map((item) => (
-                  <ItemLine
-                    key={item.id}
-                    item={item}
-                    onToggle={(done) =>
-                      toggle.mutate({
-                        id: item.id,
-                        status: done ? 'done' : 'todo',
-                      })
-                    }
-                  />
-                ))}
-              </ul>
+
+              <ItemGroup>
+                {group.items.map((item) => {
+                  const done = item.status === 'done'
+
+                  return (
+                    <Item
+                      className="gap-3 rounded-none border-b-border px-0 py-3 last:border-b-transparent"
+                      key={item.id}
+                      size="sm"
+                    >
+                      <Checkbox
+                        aria-label={item.name}
+                        checked={done}
+                        className="size-5 shrink-0"
+                        onCheckedChange={(checked) =>
+                          toggle.mutate({
+                            id: item.id,
+                            status: checked === true ? 'done' : 'todo',
+                          })
+                        }
+                      />
+
+                      {/* The whole row toggles, so a 20px box is never the only
+                          target. */}
+                      <button
+                        className="flex min-w-0 flex-1 select-none text-left"
+                        onClick={() =>
+                          toggle.mutate({
+                            id: item.id,
+                            status: done ? 'todo' : 'done',
+                          })
+                        }
+                        type="button"
+                      >
+                        <ItemContent className="gap-0.5">
+                          <ItemTitle
+                            className={cn(
+                              'w-full truncate',
+                              done && 'text-muted-foreground line-through',
+                            )}
+                          >
+                            {item.name}
+                          </ItemTitle>
+                          <ItemDescription className="flex flex-wrap items-center gap-x-2">
+                            {item.course && (
+                              <span>
+                                {item.course.code ?? item.course.name}
+                              </span>
+                            )}
+                            <span className="capitalize">{item.type}</span>
+                            {item.dueAt && !item.allDay && (
+                              <span>{timeFormat.format(item.dueAt)}</span>
+                            )}
+                            {item.location && <span>{item.location}</span>}
+                          </ItemDescription>
+                        </ItemContent>
+                      </button>
+
+                      {/* Normal is the default and says nothing, so only the
+                          deviations get a pill. */}
+                      {!done && item.priority !== 'normal' && (
+                        <ItemActions>
+                          <Pill className="px-2 py-0.5 text-xs">
+                            <PillIndicator
+                              variant={PRIORITY_INDICATOR[item.priority]}
+                            />
+                            <span className="capitalize">{item.priority}</span>
+                          </Pill>
+                        </ItemActions>
+                      )}
+                    </Item>
+                  )
+                })}
+              </ItemGroup>
             </section>
           ))}
         </div>
       )}
-    </div>
-  )
-}
-
-function ItemLine({
-  item,
-  onToggle,
-}: {
-  item: ItemRow
-  onToggle: (done: boolean) => void
-}) {
-  const done = item.status === 'done'
-
-  return (
-    <li className="flex min-h-14 items-center gap-3 py-2">
-      <Checkbox
-        checked={done}
-        onCheckedChange={(checked) => onToggle(checked === true)}
-        aria-label={item.name}
-        className="size-5 shrink-0"
-      />
-
-      <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            'truncate',
-            done && 'text-muted-foreground line-through',
-          )}
-        >
-          {item.name}
-        </p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-          {item.course && <span>{item.course.code ?? item.course.name}</span>}
-          <span className="capitalize">{item.type}</span>
-          {item.dueAt && !item.allDay && (
-            <span>{timeFormat.format(item.dueAt)}</span>
-          )}
-          {item.location && <span>{item.location}</span>}
-        </p>
-      </div>
-
-      {item.priority === 'high' && !done && (
-        <span className="shrink-0 text-xs font-medium text-primary">High</span>
-      )}
-    </li>
-  )
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-lg border border-dashed border-border px-5 py-12 text-center">
-      <p className="font-medium">Nothing due</p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Use Add in the nav, or press ⌘K, to put something here.
-      </p>
     </div>
   )
 }

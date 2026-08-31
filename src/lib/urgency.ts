@@ -135,3 +135,45 @@ export function overdueCount(items: Urgent[], now: Date = new Date()): number {
     (item) => item.status !== 'done' && bucketFor(item, now) === 'overdue',
   ).length
 }
+
+/** Dot colour beside each group heading in the kibo list. */
+export const BUCKET_COLORS: Record<Bucket, string> = {
+  overdue: 'var(--destructive)',
+  today: 'var(--primary)',
+  tomorrow: 'var(--muted-foreground)',
+  week: 'var(--muted-foreground)',
+  later: 'var(--muted-foreground)',
+  someday: 'var(--border)',
+}
+
+/** Days ahead that each bucket reschedules to when something is dropped on it. */
+const DROP_OFFSET_DAYS: Partial<Record<Bucket, number>> = {
+  today: 0,
+  tomorrow: 1,
+  week: 7,
+  later: 30,
+}
+
+/**
+ * Where a dropped item should land. Dragging between groups reschedules, so
+ * each bucket needs one unambiguous date rather than a range.
+ *
+ * Returns null when the bucket is not a valid target, which is only `overdue`,
+ * since deliberately making something late is not a thing anyone wants to drag
+ * to. `someday` returns a null date, meaning the due date is cleared.
+ */
+export function dueDateForBucket(
+  bucket: Bucket,
+  now: Date = new Date(),
+): { dueAt: Date | null } | null {
+  if (bucket === 'overdue') return null
+  if (bucket === 'someday') return { dueAt: null }
+
+  const offset = DROP_OFFSET_DAYS[bucket]
+  if (offset === undefined) return null
+
+  const target = new Date(now)
+  target.setDate(target.getDate() + offset)
+  target.setHours(23, 59, 0, 0)
+  return { dueAt: target }
+}
