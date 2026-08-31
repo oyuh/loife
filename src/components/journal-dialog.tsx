@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
+import { AttachmentsPanel } from '#/components/attachments-panel'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -107,7 +108,7 @@ export function JournalDialog({
         <Field>
           <FieldLabel htmlFor={bodyId}>Entry</FieldLabel>
           <Textarea
-            className="min-h-64 font-normal"
+            className="min-h-48 font-normal"
             disabled={isLoading}
             id={bodyId}
             onChange={(event) => setBody(event.target.value)}
@@ -115,6 +116,13 @@ export function JournalDialog({
             value={body}
           />
         </Field>
+
+        {entryId !== null && (
+          <Field>
+            <FieldLabel>Attachments</FieldLabel>
+            <AttachmentsPanel logEntryId={entryId} />
+          </Field>
+        )}
       </FieldGroup>
     </form>
   )

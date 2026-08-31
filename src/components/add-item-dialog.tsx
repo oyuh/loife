@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
+import { AttachmentsPanel } from '#/components/attachments-panel'
 import {
   Choicebox,
   ChoiceboxIndicator,
@@ -50,7 +51,12 @@ import { toDueFields, toDueValue } from '#/lib/due-date'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { cn } from '#/lib/utils'
-import { createItem } from '#/server/items'
+import {
+  createItem,
+  deleteItem,
+  type ItemRow,
+  updateItem,
+} from '#/server/items'
 
 const TYPES = [
   { value: 'assignment', label: 'Assignment' },
@@ -79,33 +85,57 @@ const EMPTY = {
 export function AddItemDialog({
   open,
   onOpenChange,
+  item,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Present when editing an existing assignment, absent when adding. */
+  item?: ItemRow | null
 }) {
   const [form, setForm] = useState(EMPTY)
+
+  // Reopening on a different assignment has to reload the fields.
+  useEffect(() => {
+    if (!open) return
+    if (!item) {
+      setForm(EMPTY)
+      return
+    }
+    const due = toDueFields({ dueAt: item.dueAt, allDay: item.allDay })
+    setForm({
+      name: item.name,
+      courseId: item.course ? String(item.course.id) : '',
+      type: item.type,
+      date: due.date,
+      time: due.time,
+      priority: item.priority,
+      location: item.location ?? '',
+      notes: item.notes ?? '',
+    })
+  }, [open, item])
   const queryClient = useQueryClient()
   const isDesktop = useMediaQuery('(min-width: 640px)')
 
   const save = useMutation({
     mutationFn: () => {
       const { dueAt, allDay } = toDueValue({ date: form.date, time: form.time })
-      return createItem({
-        data: {
-          name: form.name,
-          courseId: form.courseId ? Number(form.courseId) : null,
-          type: form.type as (typeof TYPES)[number]['value'],
-          dueAt,
-          allDay,
-          priority: form.priority as (typeof PRIORITIES)[number]['value'],
-          location: form.location,
-          notes: form.notes,
-        },
-      })
+      const payload = {
+        name: form.name,
+        courseId: form.courseId ? Number(form.courseId) : null,
+        type: form.type as (typeof TYPES)[number]['value'],
+        dueAt,
+        allDay,
+        priority: form.priority as (typeof PRIORITIES)[number]['value'],
+        location: form.location,
+        notes: form.notes,
+      }
+      return item
+        ? updateItem({ data: { ...payload, id: item.id } })
+        : createItem({ data: payload })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey })
-      toast.success(`Added ${form.name.trim()}`)
+      toast.success(item ? 'Saved' : `Added ${form.name.trim()}`)
       setForm(EMPTY)
       onOpenChange(false)
     },
@@ -119,20 +149,51 @@ export function AddItemDialog({
     if (!save.isPending) onOpenChange(next)
   }
 
-  const title = 'Add assignment'
+  const remove = useMutation({
+    mutationFn: () => deleteItem({ data: { id: item?.id as number } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey })
+      toast.success('Deleted')
+      onOpenChange(false)
+    },
+    onError: () => toast.error('Could not delete that'),
+  })
+
+  const title = item ? 'Edit assignment' : 'Add assignment'
   const description = 'Leave the time empty for anything due by end of day.'
   const body = (
-    <AddItemForm form={form} onChange={setForm} onSubmit={save.mutate} />
+    <>
+      <AddItemForm form={form} onChange={setForm} onSubmit={save.mutate} />
+      {item && (
+        <div className="space-y-2 pt-2">
+          <p className="font-medium text-sm">Attachments</p>
+          <AttachmentsPanel itemId={item.id} />
+        </div>
+      )}
+    </>
   )
   const submit = (
-    <Button
-      className="min-h-11 w-full sm:w-auto"
-      disabled={save.isPending || !form.name.trim()}
-      form="add-item"
-      type="submit"
-    >
-      {save.isPending ? 'Saving…' : 'Add'}
-    </Button>
+    <>
+      {item && (
+        <Button
+          className="min-h-11 mr-auto"
+          disabled={remove.isPending || save.isPending}
+          onClick={() => remove.mutate()}
+          type="button"
+          variant="ghost"
+        >
+          Delete
+        </Button>
+      )}
+      <Button
+        className="min-h-11 w-full sm:w-auto"
+        disabled={save.isPending || !form.name.trim()}
+        form="add-item"
+        type="submit"
+      >
+        {save.isPending ? 'Saving…' : item ? 'Save' : 'Add'}
+      </Button>
+    </>
   )
 
   // A bottom sheet beats a centred dialog once the mobile keyboard is up.

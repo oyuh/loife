@@ -5,7 +5,9 @@ import {
 } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CalendarCheck } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { AddItemDialog } from '#/components/add-item-dialog'
 import { InlineLog } from '#/components/inline-log'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
 import { Checkbox } from '#/components/ui/checkbox'
@@ -49,6 +51,7 @@ const PRIORITY_INDICATOR = { high: 'error', low: 'success' } as const
 function Today() {
   const { data: items } = useSuspenseQuery(itemsQuery)
   const queryClient = useQueryClient()
+  const [editing, setEditing] = useState<ItemRow | null>(null)
 
   /**
    * Paints one row before the round trip and hands back the snapshot that
@@ -136,28 +139,28 @@ function Today() {
                       key={item.id}
                       size="sm"
                     >
-                      <Checkbox
-                        aria-label={item.name}
-                        checked={done}
-                        className="size-5 shrink-0"
-                        onCheckedChange={(checked) =>
-                          toggle.mutate({
-                            id: item.id,
-                            status: checked === true ? 'done' : 'todo',
-                          })
-                        }
-                      />
+                      {/* Padding rather than a bigger box, so the tap target
+                          clears 44px while the control stays small. */}
+                      <span className="-m-2 shrink-0 p-2">
+                        <Checkbox
+                          aria-label={`Mark ${item.name} done`}
+                          checked={done}
+                          className="size-5"
+                          onCheckedChange={(checked) =>
+                            toggle.mutate({
+                              id: item.id,
+                              status: checked === true ? 'done' : 'todo',
+                            })
+                          }
+                        />
+                      </span>
 
                       {/* The whole row toggles, so a 20px box is never the only
                           target. */}
                       <button
+                        aria-label={`Open ${item.name}`}
                         className="flex min-w-0 flex-1 select-none text-left"
-                        onClick={() =>
-                          toggle.mutate({
-                            id: item.id,
-                            status: done ? 'todo' : 'done',
-                          })
-                        }
+                        onClick={() => setEditing(item)}
                         type="button"
                       >
                         <ItemContent className="gap-0.5">
@@ -206,6 +209,14 @@ function Today() {
       )}
 
       <InlineLog />
+
+      <AddItemDialog
+        item={editing}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null)
+        }}
+        open={editing !== null}
+      />
     </div>
   )
 }

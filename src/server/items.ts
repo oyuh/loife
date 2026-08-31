@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '#/db'
 import { courses, items } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
-import { syncItem } from './calendar'
+import { removeItemEvent, syncItem } from './calendar'
 
 // Nothing here may export a plain function that touches the session. The
 // bundler strips a createServerFn handler body from the client build, but a
@@ -160,4 +160,27 @@ export const createItems = createServerFn({ method: 'POST' })
     })()
 
     return { count: rows.length }
+  })
+
+export const updateItem = createServerFn({ method: 'POST' })
+  .validator(createInput.extend({ id: z.number().int().positive() }))
+  .handler(async ({ data }) => {
+    await requireUser()
+    const { id, ...fields } = data
+    await db.update(items).set(fields).where(eq(items.id, id))
+    void syncItem(id)
+    return { id }
+  })
+
+export const deleteItem = createServerFn({ method: 'POST' })
+  .validator(z.object({ id: z.number().int().positive() }))
+  .handler(async ({ data }) => {
+    await requireUser()
+    // Attachments cascade with the row. The calendar event has to be taken off
+    // by hand, since Google knows nothing about the foreign key.
+    const [row] = await db
+      .delete(items)
+      .where(eq(items.id, data.id))
+      .returning({ googleEventId: items.googleEventId })
+    if (row?.googleEventId) void removeItemEvent(row.googleEventId)
   })
