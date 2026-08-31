@@ -1,0 +1,375 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useId, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '#/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '#/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '#/components/ui/drawer'
+import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
+import { Input } from '#/components/ui/input'
+import { Textarea } from '#/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
+import { trimSeconds, WEEKDAYS } from '#/lib/course-event'
+import { coursesQuery, itemsQuery } from '#/lib/queries'
+import { useMediaQuery } from '#/lib/use-media-query'
+import { type CourseRow, createCourse, updateCourse } from '#/server/courses'
+
+/** A small fixed set beats a full colour picker for tagging a handful of classes. */
+const COLORS = [
+  '#3b82f6',
+  '#22c55e',
+  '#a855f7',
+  '#f59e0b',
+  '#ef4444',
+  '#06b6d4',
+  '#ec4899',
+  '#84cc16',
+]
+
+const EMPTY = {
+  name: '',
+  code: '',
+  color: COLORS[0],
+  term: '',
+  termStart: '',
+  termEnd: '',
+  days: [] as number[],
+  startTime: '',
+  endTime: '',
+  location: '',
+  notes: '',
+  active: true,
+}
+
+type Form = typeof EMPTY
+
+function fromCourse(course: CourseRow): Form {
+  return {
+    name: course.name,
+    code: course.code ?? '',
+    color: course.color ?? COLORS[0],
+    term: course.term ?? '',
+    termStart: course.termStart ?? '',
+    termEnd: course.termEnd ?? '',
+    days: course.days ?? [],
+    startTime: trimSeconds(course.startTime),
+    endTime: trimSeconds(course.endTime),
+    location: course.location ?? '',
+    notes: course.notes ?? '',
+    active: course.active,
+  }
+}
+
+export function CourseDialog({
+  open,
+  onOpenChange,
+  course,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Present when editing, absent when adding. */
+  course?: CourseRow | null
+}) {
+  const [form, setForm] = useState<Form>(EMPTY)
+  const queryClient = useQueryClient()
+  const isDesktop = useMediaQuery('(min-width: 640px)')
+
+  // Reopening on a different course has to reload the fields.
+  useEffect(() => {
+    if (open) setForm(course ? fromCourse(course) : EMPTY)
+  }, [open, course])
+
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = {
+        name: form.name,
+        code: form.code,
+        color: form.color,
+        term: form.term,
+        termStart: form.termStart || null,
+        termEnd: form.termEnd || null,
+        days: form.days,
+        startTime: form.startTime || null,
+        endTime: form.endTime || null,
+        location: form.location,
+        notes: form.notes,
+        active: form.active,
+      }
+      return course
+        ? updateCourse({ data: { ...payload, id: course.id } })
+        : createCourse({ data: payload })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: coursesQuery.queryKey })
+      queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey })
+      toast.success(course ? 'Course updated' : `Added ${form.name.trim()}`)
+      onOpenChange(false)
+    },
+    onError: (error) =>
+      toast.error(
+        error instanceof Error ? error.message : 'Could not save that',
+      ),
+  })
+
+  const title = course ? 'Edit class' : 'Add class'
+  const description =
+    'Meeting days and times become one recurring event on your calendar.'
+  const body = (
+    <CourseForm form={form} onChange={setForm} onSubmit={save.mutate} />
+  )
+  const submit = (
+    <Button
+      className="min-h-11 w-full sm:w-auto"
+      disabled={save.isPending || !form.name.trim()}
+      form="course-form"
+      type="submit"
+    >
+      {save.isPending ? 'Saving…' : course ? 'Save' : 'Add'}
+    </Button>
+  )
+
+  const close = (next: boolean) => {
+    if (!save.isPending) onOpenChange(next)
+  }
+
+  if (!isDesktop) {
+    return (
+      <Drawer onOpenChange={close} open={open}>
+        <DrawerContent className="max-h-[92dvh]">
+          <DrawerHeader className="text-left">
+            <DrawerTitle>{title}</DrawerTitle>
+            <DrawerDescription>{description}</DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto px-4">{body}</div>
+          <DrawerFooter>{submit}</DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog onOpenChange={close} open={open}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        {body}
+        <DialogFooter>{submit}</DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function CourseForm({
+  form,
+  onChange,
+  onSubmit,
+}: {
+  form: Form
+  onChange: (next: Form) => void
+  onSubmit: () => void
+}) {
+  const nameId = useId()
+  const codeId = useId()
+  const termId = useId()
+  const startDateId = useId()
+  const endDateId = useId()
+  const startTimeId = useId()
+  const endTimeId = useId()
+  const locationId = useId()
+  const notesId = useId()
+
+  const set = <K extends keyof Form>(key: K, value: Form[K]) =>
+    onChange({ ...form, [key]: value })
+
+  return (
+    <form
+      className="pb-2"
+      id="course-form"
+      onSubmit={(event) => {
+        event.preventDefault()
+        onSubmit()
+      }}
+    >
+      <FieldGroup>
+        <div className="grid grid-cols-3 gap-3">
+          <Field className="col-span-2">
+            <FieldLabel htmlFor={nameId}>Name</FieldLabel>
+            <Input
+              className="h-11"
+              id={nameId}
+              maxLength={200}
+              onChange={(e) => set('name', e.target.value)}
+              placeholder="Computer Systems"
+              required
+              value={form.name}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={codeId}>Code</FieldLabel>
+            <Input
+              className="h-11"
+              id={codeId}
+              maxLength={40}
+              onChange={(e) => set('code', e.target.value)}
+              placeholder="CS 2340"
+              value={form.code}
+            />
+          </Field>
+        </div>
+
+        <Field>
+          <FieldLabel>Colour</FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            {COLORS.map((color) => (
+              <button
+                aria-label={color}
+                aria-pressed={form.color === color}
+                className="size-9 rounded-full border-2 transition-colors"
+                key={color}
+                onClick={() => set('color', color)}
+                style={{
+                  backgroundColor: color,
+                  borderColor:
+                    form.color === color ? 'var(--foreground)' : 'transparent',
+                }}
+                type="button"
+              />
+            ))}
+          </div>
+        </Field>
+
+        <Field>
+          <FieldLabel>Meets on</FieldLabel>
+          <ToggleGroup
+            className="w-full justify-start"
+            onValueChange={(values: string[]) =>
+              set(
+                'days',
+                values.map(Number).sort((a, b) => a - b),
+              )
+            }
+            type="multiple"
+            value={form.days.map(String)}
+            variant="outline"
+          >
+            {WEEKDAYS.map((day) => (
+              <ToggleGroupItem
+                className="min-h-11 flex-1"
+                key={day.value}
+                value={String(day.value)}
+              >
+                {day.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field>
+            <FieldLabel htmlFor={startTimeId}>Starts</FieldLabel>
+            <Input
+              className="h-11"
+              id={startTimeId}
+              onChange={(e) => set('startTime', e.target.value)}
+              type="time"
+              value={form.startTime}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={endTimeId}>Ends</FieldLabel>
+            <Input
+              className="h-11"
+              id={endTimeId}
+              onChange={(e) => set('endTime', e.target.value)}
+              type="time"
+              value={form.endTime}
+            />
+          </Field>
+        </div>
+
+        <Field>
+          <FieldLabel htmlFor={termId}>Term</FieldLabel>
+          <Input
+            className="h-11"
+            id={termId}
+            maxLength={80}
+            onChange={(e) => set('term', e.target.value)}
+            placeholder="Fall 2026"
+            value={form.term}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field>
+            <FieldLabel htmlFor={startDateId}>Term starts</FieldLabel>
+            <Input
+              className="h-11"
+              id={startDateId}
+              onChange={(e) => set('termStart', e.target.value)}
+              type="date"
+              value={form.termStart}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={endDateId}>Term ends</FieldLabel>
+            <Input
+              className="h-11"
+              id={endDateId}
+              onChange={(e) => set('termEnd', e.target.value)}
+              type="date"
+              value={form.termEnd}
+            />
+          </Field>
+        </div>
+
+        <Field>
+          <FieldLabel htmlFor={locationId}>
+            Location
+            <span className="ml-1 font-normal text-muted-foreground">
+              optional
+            </span>
+          </FieldLabel>
+          <Input
+            className="h-11"
+            id={locationId}
+            maxLength={200}
+            onChange={(e) => set('location', e.target.value)}
+            placeholder="ECSS 2.410"
+            value={form.location}
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor={notesId}>
+            Notes
+            <span className="ml-1 font-normal text-muted-foreground">
+              optional
+            </span>
+          </FieldLabel>
+          <Textarea
+            id={notesId}
+            maxLength={2000}
+            onChange={(e) => set('notes', e.target.value)}
+            rows={2}
+            value={form.notes}
+          />
+        </Field>
+      </FieldGroup>
+    </form>
+  )
+}

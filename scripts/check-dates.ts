@@ -235,3 +235,64 @@ assert.match(titledEvent?.description ?? '', /assignment/)
 console.log('ok  the course leads the summary')
 
 console.log('\ncalendar event checks passed')
+
+// --- recurring course meetings ------------------------------------------
+
+const { toCourseEvent, firstMeetingOn, toUntil, trimSeconds } = await import(
+  '../src/lib/course-event.ts'
+)
+
+const course = (over: Record<string, unknown> = {}) => ({
+  name: 'Computer Systems',
+  code: 'CS 2340',
+  location: 'ECSS 2.410',
+  days: [1, 3, 5],
+  startTime: '10:00:00',
+  endTime: '10:50:00',
+  termStart: '2026-08-24',
+  termEnd: '2026-12-15',
+  ...over,
+}) as Parameters<typeof toCourseEvent>[0]
+
+// A term opening on a Sunday must not start a Mon/Wed/Fri series that day.
+const sunday = new Date(2026, 7, 23)
+assert.equal(sunday.getDay(), 0, 'fixture really is a Sunday')
+assert.equal(firstMeetingOn(sunday, [1, 3, 5])?.getDay(), 1, 'skips to Monday')
+assert.equal(firstMeetingOn(new Date(2026, 7, 24), [1, 3, 5])?.getDay(), 1, 'already Monday')
+console.log('ok  the series starts on the first day the class actually meets')
+
+const meeting = toCourseEvent(course(), 'America/Chicago')
+assert.ok(meeting)
+assert.match(meeting.recurrence[0], /FREQ=WEEKLY/)
+assert.match(meeting.recurrence[0], /BYDAY=MO,WE,FR/, 'day numbers become RRULE codes in week order')
+assert.match(meeting.recurrence[0], /UNTIL=\d{8}T\d{6}Z$/, 'UNTIL is UTC basic format')
+console.log('ok  weekly rule carries the meeting days and an end')
+
+// Days are sorted, so entering Friday first still reads MO,WE,FR.
+assert.match(
+  toCourseEvent(course({ days: [5, 1, 3] }), 'America/Chicago')?.recurrence[0] ?? '',
+  /BYDAY=MO,WE,FR/,
+)
+console.log('ok  day order does not depend on click order')
+
+const startsAt = new Date(meeting.start.dateTime as string)
+const endsAt = new Date(meeting.end.dateTime as string)
+assert.equal(startsAt.getHours(), 10)
+assert.equal(startsAt.getMinutes(), 0)
+assert.equal(endsAt.getHours(), 10)
+assert.equal(endsAt.getMinutes(), 50)
+assert.ok(endsAt > startsAt)
+console.log('ok  the first meeting spans the class times, local')
+
+// A course with no meeting pattern is valid, it just has no event.
+for (const missing of [{ days: [] }, { startTime: null }, { endTime: null }, { termEnd: null }]) {
+  assert.equal(toCourseEvent(course(missing), 'America/Chicago'), null, JSON.stringify(missing))
+}
+console.log('ok  an incomplete meeting pattern produces no event')
+
+assert.equal(trimSeconds('10:00:00'), '10:00', 'postgres time renders in a time input')
+assert.equal(trimSeconds(null), '')
+assert.ok(toUntil('2026-12-15'))
+console.log('ok  postgres time values round trip into the form')
+
+console.log('\ncourse meeting checks passed')

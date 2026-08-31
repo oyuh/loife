@@ -3,6 +3,7 @@ import { and, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { courses, items } from '#/db/schema'
 import { toCalendarEvent } from '#/lib/calendar-event'
+import { toCourseEvent } from '#/lib/course-event'
 import {
   deleteEvent,
   insertEvent,
@@ -137,3 +138,59 @@ export const calendarStatus = createServerFn({ method: 'GET' }).handler(
     }
   },
 )
+
+/**
+ * Pushes a course's recurring meeting event. One event per course, bounded by
+ * the term, rather than one per week.
+ *
+ * Never throws, for the same reason syncItem does not: a calendar problem must
+ * not fail the write that triggered it.
+ */
+export async function syncCourse(courseId: number): Promise<void> {
+  try {
+    const [row] = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, courseId))
+
+    if (!row) return
+
+    const settings = await loadSettings()
+    if (!settings?.googleRefreshToken) return
+
+    const event = row.active ? toCourseEvent(row, timeZone()) : null
+
+    // An inactive course, or one with no meeting pattern, belongs on no
+    // calendar. If it had an event, take it off.
+    if (!event) {
+      if (row.googleEventId) {
+        await deleteEvent(row.googleEventId)
+        await db
+          .update(courses)
+          .set({ googleEventId: null, syncedAt: new Date() })
+          .where(eq(courses.id, courseId))
+      }
+      return
+    }
+
+    if (row.googleEventId) {
+      const patched = await patchEvent(row.googleEventId, event)
+      if (patched) {
+        await markCourseSynced(courseId, row.googleEventId)
+        return
+      }
+    }
+
+    const eventId = await insertEvent(event)
+    await markCourseSynced(courseId, eventId)
+  } catch (error) {
+    console.error(`calendar sync failed for course ${courseId}:`, error)
+  }
+}
+
+async function markCourseSynced(courseId: number, eventId: string) {
+  await db
+    .update(courses)
+    .set({ googleEventId: eventId, syncedAt: sql`${courses.updatedAt}` })
+    .where(eq(courses.id, courseId))
+}

@@ -1,18 +1,29 @@
 import { createServerFn } from '@tanstack/react-start'
 import { asc, eq } from 'drizzle-orm'
+import { z } from 'zod'
 import { db } from '#/db'
 import { courses } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
+import { syncCourse } from './calendar'
 
-export interface CourseOption {
+export interface CourseRow {
   id: number
   name: string
   code: string | null
   color: string | null
+  term: string | null
+  termStart: string | null
+  termEnd: string | null
+  days: number[] | null
+  startTime: string | null
+  endTime: string | null
+  location: string | null
+  notes: string | null
+  active: boolean
 }
 
 export const listCourses = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<CourseOption[]> => {
+  async (): Promise<CourseRow[]> => {
     await requireUser()
     return db
       .select({
@@ -20,9 +31,71 @@ export const listCourses = createServerFn({ method: 'GET' }).handler(
         name: courses.name,
         code: courses.code,
         color: courses.color,
+        term: courses.term,
+        termStart: courses.termStart,
+        termEnd: courses.termEnd,
+        days: courses.days,
+        startTime: courses.startTime,
+        endTime: courses.endTime,
+        location: courses.location,
+        notes: courses.notes,
+        active: courses.active,
       })
       .from(courses)
-      .where(eq(courses.active, true))
-      .orderBy(asc(courses.code), asc(courses.name))
+      .orderBy(asc(courses.active), asc(courses.code), asc(courses.name))
   },
 )
+
+const emptyToNull = (value: string | null | undefined) => {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+const dateOnly = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a calendar date')
+  .nullable()
+
+const timeOnly = z
+  .string()
+  .regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Use a 24 hour time')
+  .nullable()
+
+const courseInput = z.object({
+  name: z.string().trim().min(1, 'Give it a name').max(200),
+  code: z.string().max(40).nullable().transform(emptyToNull),
+  color: z.string().max(40).nullable().transform(emptyToNull),
+  term: z.string().max(80).nullable().transform(emptyToNull),
+  termStart: dateOnly,
+  termEnd: dateOnly,
+  // 0 is Sunday through 6 is Saturday.
+  days: z.array(z.number().int().min(0).max(6)).max(7),
+  startTime: timeOnly,
+  endTime: timeOnly,
+  location: z.string().max(200).nullable().transform(emptyToNull),
+  notes: z.string().max(2000).nullable().transform(emptyToNull),
+  active: z.boolean(),
+})
+
+export const createCourse = createServerFn({ method: 'POST' })
+  .validator(courseInput)
+  .handler(async ({ data }) => {
+    await requireUser()
+    const [row] = await db
+      .insert(courses)
+      .values(data)
+      .returning({ id: courses.id })
+    // Not awaited, so a slow Google call never holds up the response.
+    void syncCourse(row.id)
+    return row
+  })
+
+export const updateCourse = createServerFn({ method: 'POST' })
+  .validator(courseInput.extend({ id: z.number().int().positive() }))
+  .handler(async ({ data }) => {
+    await requireUser()
+    const { id, ...fields } = data
+    await db.update(courses).set(fields).where(eq(courses.id, id))
+    void syncCourse(id)
+    return { id }
+  })
