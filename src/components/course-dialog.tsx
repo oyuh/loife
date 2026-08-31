@@ -225,7 +225,7 @@ function CourseForm({
     >
       <FieldGroup>
         <div className="grid grid-cols-3 gap-3">
-          <Field className="col-span-2">
+          <Field className="col-span-2 min-w-0">
             <FieldLabel htmlFor={nameId}>Name</FieldLabel>
             <Input
               className="h-11"
@@ -237,7 +237,7 @@ function CourseForm({
               value={form.name}
             />
           </Field>
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel htmlFor={codeId}>Code</FieldLabel>
             <Input
               className="h-11"
@@ -379,7 +379,7 @@ function CourseForm({
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel htmlFor={startTimeId}>Starts</FieldLabel>
             <Input
               className="h-11"
@@ -389,7 +389,7 @@ function CourseForm({
               value={form.startTime}
             />
           </Field>
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel htmlFor={endTimeId}>Ends</FieldLabel>
             <Input
               className="h-11"
@@ -414,7 +414,7 @@ function CourseForm({
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel htmlFor={startDateId}>Term starts</FieldLabel>
             <Input
               className="h-11"
@@ -424,7 +424,7 @@ function CourseForm({
               value={form.termStart}
             />
           </Field>
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel htmlFor={endDateId}>Term ends</FieldLabel>
             <Input
               className="h-11"
@@ -436,7 +436,7 @@ function CourseForm({
           </Field>
         </div>
 
-        <Field>
+        <Field className="min-w-0">
           <FieldLabel htmlFor={locationId}>
             Location
             <span className="ml-1 font-normal text-muted-foreground">

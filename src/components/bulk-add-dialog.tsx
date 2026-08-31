@@ -147,7 +147,7 @@ export function BulkAddDialog({
         </Field>
 
         <div className="grid grid-cols-3 gap-3">
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel>Course</FieldLabel>
             <Select onValueChange={setCourseId} value={courseId || 'none'}>
               <SelectTrigger className="h-11 w-full">
@@ -163,7 +163,7 @@ export function BulkAddDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel>Type</FieldLabel>
             <Select onValueChange={setType} value={type}>
               <SelectTrigger className="h-11 w-full">
@@ -177,7 +177,7 @@ export function BulkAddDialog({
               </SelectContent>
             </Select>
           </Field>
-          <Field>
+          <Field className="min-w-0">
             <FieldLabel>Priority</FieldLabel>
             <Select onValueChange={setPriority} value={priority}>
               <SelectTrigger className="h-11 w-full">
@@ -207,13 +207,13 @@ export function BulkAddDialog({
 
               return (
                 <li
-                  className="flex flex-wrap items-end gap-2 py-2 data-[gone=true]:opacity-40"
+                  className="grid grid-cols-[1fr_auto] items-end gap-2 py-2 sm:flex sm:flex-wrap data-[gone=true]:opacity-40"
                   data-gone={gone}
                   key={row.key}
                 >
                   <Input
                     aria-label={`Name for ${row.name}`}
-                    className="h-10 min-w-40 flex-1"
+                    className="h-10 w-full min-w-0 sm:flex-1"
                     disabled={gone}
                     onChange={(event) =>
                       setEdited((prev) => ({
@@ -228,7 +228,7 @@ export function BulkAddDialog({
                   />
                   <Input
                     aria-label={`Due date for ${row.name}`}
-                    className="h-10 w-36"
+                    className="h-10 w-full min-w-0 sm:w-36"
                     disabled={gone}
                     onChange={(event) =>
                       setEdited((prev) => ({
@@ -244,7 +244,7 @@ export function BulkAddDialog({
                   />
                   <Input
                     aria-label={`Due time for ${row.name}`}
-                    className="h-10 w-28"
+                    className="h-10 w-full min-w-0 sm:w-28"
                     disabled={gone}
                     onChange={(event) =>
                       setEdited((prev) => ({

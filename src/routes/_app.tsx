@@ -26,10 +26,14 @@ function AppLayout() {
   // lives here rather than in either one.
   const [adding, setAdding] = useState(false)
   const [bulkAdding, setBulkAdding] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   return (
     <>
-      <AppShell onAddItem={() => setAdding(true)}>
+      <AppShell
+        onAddItem={() => setAdding(true)}
+        onOpenPalette={() => setPaletteOpen(true)}
+      >
         <Outlet />
       </AppShell>
 
@@ -38,6 +42,8 @@ function AppLayout() {
       <CommandPalette
         onAddItem={() => setAdding(true)}
         onBulkAdd={() => setBulkAdding(true)}
+        onOpenChange={setPaletteOpen}
+        open={paletteOpen}
       />
       <Toaster position="top-center" />
     </>

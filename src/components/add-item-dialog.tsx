@@ -397,7 +397,7 @@ function AddItemForm({
           </Choicebox>
         </Field>
 
-        <Field>
+        <Field className="min-w-0">
           <FieldLabel htmlFor={locationId}>
             Location
             <span className="ml-1 font-normal text-muted-foreground">

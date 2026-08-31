@@ -6,7 +6,7 @@ import {
   NotebookPen,
   Plus,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
   CommandDialog,
   CommandEmpty,
@@ -21,11 +21,14 @@ import { Kbd } from '#/components/ui/kbd'
 export function CommandPalette({
   onAddItem,
   onBulkAdd,
+  open,
+  onOpenChange,
 }: {
   onAddItem: () => void
   onBulkAdd: () => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -33,23 +36,23 @@ export function CommandPalette({
       if (event.key.toLowerCase() !== 'k') return
       if (!event.metaKey && !event.ctrlKey) return
       event.preventDefault()
-      setOpen((previous) => !previous)
+      onOpenChange(!open)
     }
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [open, onOpenChange])
 
   // Close first so focus returns before the next thing takes it.
   const run = (action: () => void) => {
-    setOpen(false)
+    onOpenChange(false)
     action()
   }
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={onOpenChange}
       title="Command palette"
       description="Add work or jump between pages"
     >
