@@ -8,7 +8,7 @@ import {
 } from '#/components/ui/collapsible'
 import { type Busy, planDay } from '#/lib/plan-day'
 import { coursesQuery } from '#/lib/queries'
-import { calendarStatus } from '#/server/calendar'
+import { busyPeriods, calendarStatus } from '#/server/calendar'
 import type { CourseRow } from '#/server/courses'
 import type { ItemRow } from '#/server/items'
 import { studiedByItem } from '#/server/study'
@@ -68,11 +68,36 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
     queryFn: () => studiedByItem(),
   })
 
+  // The day being planned, worked out once so the query key stays stable
+  // across renders instead of refetching on every tick.
+  const range = useMemo(() => {
+    const from = new Date()
+    from.setHours(0, 0, 0, 0)
+    const to = new Date(from)
+    to.setDate(to.getDate() + 1)
+    return { from: from.toISOString(), to: to.toISOString() }
+  }, [])
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['busy', range.from],
+    queryFn: () => busyPeriods({ data: range }),
+    enabled: Boolean(prefs?.connected),
+    // A dentist appointment booked five minutes ago can wait five minutes.
+    staleTime: 5 * 60_000,
+  })
+
+  const busy = useMemo(() => {
+    const now = new Date()
+    return [
+      ...courses
+        .map((course) => meetingToday(course, now))
+        .filter((slot): slot is Busy => slot !== null),
+      ...events,
+    ].sort((a, b) => +a.start - +b.start)
+  }, [courses, events])
+
   const plan = useMemo(() => {
     const now = new Date()
-    const busy = courses
-      .map((course) => meetingToday(course, now))
-      .filter((slot): slot is Busy => slot !== null)
 
     return planDay({
       day: now,
@@ -87,7 +112,7 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
       })),
       now,
     })
-  }, [courses, items, prefs, studied])
+  }, [busy, items, prefs, studied])
 
   const needEstimates = plan.unplaced.filter((u) => u.reason === 'no estimate')
   const noRoom = plan.unplaced.filter((u) => u.reason === 'no room')
@@ -167,9 +192,24 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
           </p>
         )}
 
+        {busy.length > 0 && (
+          <p className="text-muted-foreground text-xs">
+            Working around{' '}
+            {busy
+              .map(
+                (slot) =>
+                  `${slot.label} ${clock.format(slot.start)}–${clock.format(slot.end)}`,
+              )
+              .join(', ')}
+            .
+          </p>
+        )}
+
         <p className="text-muted-foreground text-xs">
           Suggestions only. Nothing here changes a due date or touches your
           calendar.
+          {prefs?.connected === false &&
+            ' Connect Google Calendar in Settings and it will plan around what is already booked.'}
         </p>
       </CollapsibleContent>
     </Collapsible>

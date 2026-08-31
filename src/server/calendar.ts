@@ -3,7 +3,7 @@ import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '#/db'
 import { items, settings } from '#/db/schema'
-import { loadSettings } from '#/lib/google.server'
+import { listBusy, loadSettings } from '#/lib/google.server'
 import { requireUser } from '#/lib/session.server'
 import { syncItem } from './calendar.server'
 
@@ -78,4 +78,15 @@ export const savePreferences = createServerFn({ method: 'POST' })
       .insert(settings)
       .values({ id: 1, ...data })
       .onConflictDoUpdate({ target: settings.id, set: data })
+  })
+
+/**
+ * What the calendar already has in a window, so the planner works around real
+ * commitments rather than only around class times.
+ */
+export const busyPeriods = createServerFn({ method: 'GET' })
+  .validator(z.object({ from: z.string(), to: z.string() }))
+  .handler(async ({ data }) => {
+    await requireUser()
+    return await listBusy(new Date(data.from), new Date(data.to))
   })

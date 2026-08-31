@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '#/db'
 import { settings } from '#/db/schema'
+import { type BusyPeriod, toBusyPeriods } from './busy'
 import { requireEnv } from './env'
 
 /**
@@ -13,7 +14,11 @@ const AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3'
 
-/** Write access to calendars this app creates, and nothing else. */
+/**
+ * One scope covers both directions: writing to the calendar this app creates,
+ * and reading the others to see what time is already spoken for. Google has no
+ * narrower scope that allows creating a calendar, so this is the floor.
+ */
 const SCOPE = 'https://www.googleapis.com/auth/calendar'
 
 export const CALENDAR_NAME = 'loife'
@@ -232,5 +237,71 @@ export async function deleteEvent(eventId: string): Promise<void> {
   await calendarFetch(
     `/calendars/${calendarId}/events/${encodeURIComponent(eventId)}`,
     { method: 'DELETE' },
+  )
+}
+
+/**
+ * Which calendars to read.
+ *
+ * `minAccessRole=reader` drops the ones shared with us as free/busy only,
+ * whose events we could not read anyway, and `showHidden=false` drops the ones
+ * hidden in Google's own UI. Our own calendar is excluded because the
+ * assignments we write to it would otherwise show up as commitments and block
+ * the very work being planned around them.
+ *
+ * Cached for an hour. People add a calendar a few times a year, and this
+ * otherwise costs a request every time the plan opens.
+ */
+let cachedCalendars: { ids: string[]; expiresAt: number } | null = null
+
+/** A pathological account should not turn one plan into forty requests. */
+const MAX_CALENDARS = 15
+
+async function readableCalendars(): Promise<string[]> {
+  if (cachedCalendars && cachedCalendars.expiresAt > Date.now()) {
+    return cachedCalendars.ids
+  }
+
+  const ours = (await loadSettings())?.googleCalendarId
+  const list = (await calendarFetch(
+    '/users/me/calendarList?minAccessRole=reader&showHidden=false',
+  )) as { items?: { id: string }[] } | null
+
+  const ids = (list?.items ?? [])
+    .map((entry) => entry.id)
+    .filter((id) => id !== ours)
+    .slice(0, MAX_CALENDARS)
+
+  cachedCalendars = { ids, expiresAt: Date.now() + 3_600_000 }
+  return ids
+}
+
+/** Everything already booked in a window, across every calendar you keep. */
+export async function listBusy(from: Date, to: Date): Promise<BusyPeriod[]> {
+  const row = await loadSettings()
+  if (!row?.googleRefreshToken) return []
+
+  const params = new URLSearchParams({
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '50',
+    timeMin: from.toISOString(),
+    timeMax: to.toISOString(),
+  })
+
+  const calendars = await readableCalendars()
+
+  // One unreadable calendar should not cost you the whole plan, so each is
+  // allowed to fail on its own.
+  const pages = await Promise.all(
+    calendars.map((id) =>
+      calendarFetch(
+        `/calendars/${encodeURIComponent(id)}/events?${params}`,
+      ).catch(() => null),
+    ),
+  )
+
+  return toBusyPeriods(
+    pages.flatMap((page) => (page as { items?: [] } | null)?.items ?? []),
   )
 }

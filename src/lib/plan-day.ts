@@ -10,11 +10,9 @@
  * no plan.
  */
 
-export interface Busy {
-  start: Date
-  end: Date
-  label: string
-}
+import type { BusyPeriod } from './busy'
+
+export type Busy = BusyPeriod
 
 export interface Plannable {
   id: number

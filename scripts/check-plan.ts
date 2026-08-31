@@ -4,6 +4,7 @@
  *   pnpm check:plan
  */
 import assert from 'node:assert/strict'
+import { toBusyPeriods } from '../src/lib/busy.ts'
 import {
   freeWindows,
   planDay,
@@ -247,3 +248,86 @@ assert.deepEqual(both.blocks.map((b) => b.kind).sort(), ['study', 'work'])
 console.log('ok  preparing and doing are separate blocks')
 
 console.log('\nstudy planning checks passed')
+
+// --- what counts as busy ------------------------------------------------
+
+const utc = (hhmm: string) => `2026-09-15T${hhmm}:00.000Z`
+const meeting = (over: Record<string, unknown> = {}) => ({
+  summary: 'Dentist',
+  start: { dateTime: utc('14:00') },
+  end: { dateTime: utc('15:00') },
+  ...over,
+})
+
+const [appointment] = toBusyPeriods([meeting()])
+assert.equal(appointment.label, 'Dentist')
+assert.equal(+appointment.end - +appointment.start, 60 * 60_000)
+console.log('ok  an ordinary meeting takes its slot')
+
+// A birthday or a public holiday would otherwise blank out the whole day.
+assert.equal(
+  toBusyPeriods([
+    { summary: 'Labor Day', start: { date: '2026-09-15' }, end: { date: '2026-09-16' } },
+  ]).length,
+  0,
+)
+console.log('ok  an all day event does not blank out the day')
+
+// Google's own free/busy flag says this one costs no time.
+assert.equal(toBusyPeriods([meeting({ transparency: 'transparent' })]).length, 0)
+console.log('ok  events marked free in Google cost nothing')
+
+assert.equal(
+  toBusyPeriods([
+    meeting({ attendees: [{ self: true, responseStatus: 'declined' }] }),
+  ]).length,
+  0,
+)
+console.log('ok  an invitation you declined is not a commitment')
+
+// Somebody else declining is not you declining.
+assert.equal(
+  toBusyPeriods([
+    meeting({
+      attendees: [
+        { self: true, responseStatus: 'accepted' },
+        { responseStatus: 'declined' },
+      ],
+    }),
+  ]).length,
+  1,
+)
+console.log('ok  one you accepted still is')
+
+assert.equal(toBusyPeriods([meeting({ status: 'cancelled' })]).length, 0)
+assert.equal(
+  toBusyPeriods([meeting({ end: { dateTime: utc('14:00') } })]).length,
+  0,
+)
+console.log('ok  cancelled and zero length events are dropped')
+
+// A private event on a shared calendar arrives without a title.
+assert.equal(toBusyPeriods([meeting({ summary: undefined })])[0].label, 'Busy')
+console.log('ok  a private event still blocks the time, without a name')
+
+// Two calendars are read separately, so the merged list has to come back sorted.
+const mixed = toBusyPeriods([
+  meeting({ summary: 'Later', start: { dateTime: utc('16:00') }, end: { dateTime: utc('17:00') } }),
+  meeting({ summary: 'Earlier' }),
+])
+assert.deepEqual(
+  mixed.map((slot) => slot.label),
+  ['Earlier', 'Later'],
+)
+console.log('ok  events from several calendars come back in order')
+
+// The planner cannot tell a dentist appointment from a lecture, and should not.
+const carved = freeWindows(day, '09:00', '17:00', [
+  { start: at('12:00'), end: at('13:00'), label: 'Dentist' },
+])
+assert.equal(carved.length, 2)
+assert.equal(carved[0].end.getHours(), 12)
+assert.equal(carved[1].start.getHours(), 13)
+console.log('ok  a calendar event carves a hole the same way a class does')
+
+console.log('\nbusy time checks passed')
