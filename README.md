@@ -52,3 +52,19 @@ Sessions are sealed cookies from TanStack Start's `useSession`, which handles en
 6. Set your GitHub OAuth app callback to `https://your_domain_here/api/auth/callback`.
 
 An OAuth app holds one callback URL at a time. Keep a second OAuth app pointed at `http://localhost:3000/api/auth/callback` so local development keeps working, and give each environment its own `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+
+### Migrations on deploy
+
+`railway.json` sets a pre-deploy command that runs [scripts/migrate.mjs](./scripts/migrate.mjs) before each new deployment goes live. It runs inside Railway's private network, so `DATABASE_URL` resolves and Postgres never needs a public TCP proxy.
+
+The script uses drizzle-orm's migrator rather than the drizzle-kit CLI, because drizzle-kit is a devDependency and a production image may prune it.
+
+**Deadline: 2026-12-01.** Railway deprecated `railway.json` in favour of `.railway/railway.ts`. Running `railway config migrate` today turns `preDeployCommand` into a comment rather than a real property, so the new format cannot express it yet and migrating would silently drop the setting. Recheck before that date. If the new format still lacks it, set the pre-deploy command in the service settings instead and delete `railway.json`.
+
+## Checking the schema
+
+```bash
+pnpm db:check
+```
+
+Applies the migrations to an in-process Postgres and asserts the constraints reject bad rows. No Docker and no database required.
