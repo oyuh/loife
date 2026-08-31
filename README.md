@@ -55,11 +55,19 @@ An OAuth app holds one callback URL at a time. Keep a second OAuth app pointed a
 
 ### Migrations on deploy
 
-`railway.json` sets a pre-deploy command that runs [scripts/migrate.mjs](./scripts/migrate.mjs) before each new deployment goes live. It runs inside Railway's private network, so `DATABASE_URL` resolves and Postgres never needs a public TCP proxy.
+The `start` script runs [scripts/migrate.mjs](./scripts/migrate.mjs) before the server boots:
+
+```
+node scripts/migrate.mjs && node .output/server/index.mjs
+```
+
+Migrations therefore apply inside Railway's private network, where `DATABASE_URL` resolves, so Postgres needs no public TCP proxy. A failed migration stops the boot rather than serving traffic against a schema that does not match the code.
 
 The script uses drizzle-orm's migrator rather than the drizzle-kit CLI, because drizzle-kit is a devDependency and a production image may prune it.
 
-**Deadline: 2026-12-01.** Railway deprecated `railway.json` in favour of `.railway/railway.ts`. Running `railway config migrate` today turns `preDeployCommand` into a comment rather than a real property, so the new format cannot express it yet and migrating would silently drop the setting. Recheck before that date. If the new format still lacks it, set the pre-deploy command in the service settings instead and delete `railway.json`.
+Railway's `railway.json` pre-deploy command was the first approach and it never executed, so it was dropped. That also sidesteps the deprecation of config-as-code on 2026-12-01. Chaining into `start` is host agnostic and needs no platform config.
+
+This assumes one replica, which is the current setup. Running several would have them race to migrate on boot, so move this back to a single pre-deploy step before scaling up.
 
 ## Checking the schema
 
