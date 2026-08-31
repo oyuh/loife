@@ -11,15 +11,21 @@ import type { ReactNode } from 'react'
 import { cn } from '#/lib/utils'
 
 /**
- * Today is the reason the app exists, so it takes the left and twice the room.
- * Search sits next to it because it reaches everything else, including Courses,
- * which is rare enough not to earn a permanent slot.
+ * The active tab is a filled pill, not an underline.
+ *
+ * On a phone an underline under small grey text is easy to miss, so the current
+ * tab gets a background and full contrast text while the others stay muted.
+ * Every tab is the same width, because one double width item made the row look
+ * lopsided rather than emphasised.
  */
-const TAB_CLASS =
-  'group flex min-h-14 flex-col items-center justify-center gap-1 text-xs ' +
-  'text-muted-foreground data-[active=true]:text-foreground ' +
-  'md:min-h-11 md:flex-row md:justify-start md:gap-3 md:rounded-md ' +
-  'md:px-2 md:text-sm md:hover:bg-accent'
+const TAB =
+  'group relative flex flex-1 flex-col items-center justify-center gap-1 ' +
+  'rounded-lg py-2 text-muted-foreground text-xs transition-colors ' +
+  'data-[active=true]:bg-accent data-[active=true]:text-foreground ' +
+  'md:min-h-11 md:flex-none md:flex-row md:justify-start md:gap-3 md:px-3 ' +
+  'md:py-2 md:text-sm md:hover:bg-accent/60'
+
+const ICON = 'size-5 shrink-0 md:size-4'
 
 export function AppShell({
   children,
@@ -34,76 +40,65 @@ export function AppShell({
     <div className="min-h-dvh md:flex md:items-start">
       <nav
         aria-label="Main"
-        // pb-3 on top of the safe area inset. The inset alone leaves the row
-        // flush against the home indicator, which is awkward to hit.
-        className="fixed inset-x-0 bottom-0 z-20 flex border-border border-t bg-card
-                   pb-[calc(env(safe-area-inset-bottom)+0.75rem)]
-                   md:sticky md:top-0 md:h-dvh md:w-56 md:shrink-0 md:flex-col md:gap-1
-                   md:border-t-0 md:border-r md:p-3 md:pb-3"
+        // The row sits above the home indicator rather than against it, and
+        // gets its own padding so the pills are not flush to the screen edges.
+        className="fixed inset-x-0 bottom-0 z-20 flex gap-1 border-border border-t
+                   bg-card/95 px-2 pt-2 backdrop-blur
+                   pb-[calc(env(safe-area-inset-bottom)+0.5rem)]
+                   md:sticky md:top-0 md:h-dvh md:w-56 md:shrink-0 md:flex-col
+                   md:gap-1 md:border-t-0 md:border-r md:bg-card md:p-3"
       >
-        <p className="hidden px-2 pt-1 pb-4 font-semibold text-sm tracking-tight md:block">
+        <p className="hidden px-3 pt-1 pb-4 font-semibold text-sm tracking-tight md:block">
           loife
         </p>
 
         <Link
           activeOptions={{ exact: true }}
           activeProps={{ 'data-active': 'true', 'aria-current': 'page' }}
-          className={cn(TAB_CLASS, 'flex-[2] md:flex-none')}
+          className={TAB}
           to="/"
         >
-          <CalendarCheck aria-hidden="true" className="size-6 md:size-4" />
-          <span className="font-medium text-sm group-data-[active=true]:underline group-data-[active=true]:underline-offset-4 md:text-sm md:no-underline">
-            Today
-          </span>
+          <CalendarCheck aria-hidden="true" className={ICON} />
+          <span>Today</span>
         </Link>
 
         {/* Cmd K is keyboard only, so a phone needs its own way in. */}
-        <button
-          className={cn(TAB_CLASS, 'flex-1 md:flex-none')}
-          onClick={onOpenPalette}
-          type="button"
-        >
-          <Search aria-hidden="true" className="size-5 md:size-4" />
+        <button className={TAB} onClick={onOpenPalette} type="button">
+          <Search aria-hidden="true" className={ICON} />
           <span>Search</span>
         </button>
 
         <Link
           activeProps={{ 'data-active': 'true', 'aria-current': 'page' }}
-          className={cn(TAB_CLASS, 'flex-1 md:flex-none')}
+          className={TAB}
           to="/journal"
         >
-          <NotebookPen aria-hidden="true" className="size-5 md:size-4" />
-          <span className="group-data-[active=true]:underline group-data-[active=true]:underline-offset-4 md:no-underline">
-            Journal
-          </span>
+          <NotebookPen aria-hidden="true" className={ICON} />
+          <span>Journal</span>
         </Link>
 
-        <button
-          className={cn(TAB_CLASS, 'flex-1 md:flex-none')}
-          onClick={onAddItem}
-          type="button"
-        >
-          <Plus aria-hidden="true" className="size-5 md:size-4" />
+        <button className={TAB} onClick={onAddItem} type="button">
+          <Plus aria-hidden="true" className={ICON} />
           <span>Add</span>
         </button>
 
         {/* Desktop only. The phone keeps four tabs and reaches these through
-            search, which is why Courses moved there too. */}
+            search, which is where Courses lives too. */}
         <Link
           activeProps={{ 'data-active': 'true', 'aria-current': 'page' }}
-          className={cn(TAB_CLASS, 'hidden md:flex')}
+          className={cn(TAB, 'hidden md:flex')}
           to="/history"
         >
-          <History aria-hidden="true" className="size-4" />
+          <History aria-hidden="true" className={ICON} />
           <span>History</span>
         </Link>
 
         <Link
           activeProps={{ 'data-active': 'true', 'aria-current': 'page' }}
-          className={cn(TAB_CLASS, 'hidden md:flex')}
+          className={cn(TAB, 'hidden md:flex')}
           to="/settings"
         >
-          <Settings aria-hidden="true" className="size-4" />
+          <Settings aria-hidden="true" className={ICON} />
           <span>Settings</span>
         </Link>
 
@@ -113,7 +108,7 @@ export function AppShell({
           method="post"
         >
           <button
-            className="min-h-11 px-2 text-muted-foreground text-sm underline-offset-4 hover:underline"
+            className="min-h-11 px-3 text-muted-foreground text-sm underline-offset-4 hover:underline"
             type="submit"
           >
             Sign out
@@ -122,7 +117,7 @@ export function AppShell({
       </nav>
 
       {/* Clears the fixed nav plus its safe-area padding on phones. */}
-      <main className="min-w-0 flex-1 pb-32 md:pb-0">{children}</main>
+      <main className="min-w-0 flex-1 pb-28 md:pb-0">{children}</main>
     </div>
   )
 }

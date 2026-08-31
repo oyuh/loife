@@ -206,7 +206,7 @@ function Today() {
   const late = overdueCount(items, now)
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl px-5 pt-8 pb-28">
       <header className="mb-6">
         <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
         <p className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
@@ -384,9 +384,7 @@ function Today() {
         </div>
       )}
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-10 -mx-5 mt-6 border-border border-t bg-background px-5 pt-3 pb-1 md:bottom-0 md:pb-3">
-        <InlineLog />
-      </div>
+      <InlineLog />
 
       <AlertDialog
         onOpenChange={(open) => {
