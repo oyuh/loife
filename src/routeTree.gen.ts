@@ -13,7 +13,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppCoursesRouteImport } from './routes/_app/courses'
+import { Route as AppHistoryRouteImport } from './routes/_app/history'
 import { Route as AppJournalRouteImport } from './routes/_app/journal'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as ApiAuthGithubRouteImport } from './routes/api/auth/github'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
@@ -39,9 +41,19 @@ const AppCoursesRoute = AppCoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => AppRoute,
 } as any)
+const AppHistoryRoute = AppHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppJournalRoute = AppJournalRouteImport.update({
   id: '/journal',
   path: '/journal',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
@@ -74,7 +86,9 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/signin': typeof SigninRoute
   '/courses': typeof AppCoursesRoute
+  '/history': typeof AppHistoryRoute
   '/journal': typeof AppJournalRoute
+  '/settings': typeof AppSettingsRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/auth/github': typeof ApiAuthGithubRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -84,7 +98,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/signin': typeof SigninRoute
   '/courses': typeof AppCoursesRoute
+  '/history': typeof AppHistoryRoute
   '/journal': typeof AppJournalRoute
+  '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/auth/github': typeof ApiAuthGithubRoute
@@ -97,7 +113,9 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/signin': typeof SigninRoute
   '/_app/courses': typeof AppCoursesRoute
+  '/_app/history': typeof AppHistoryRoute
   '/_app/journal': typeof AppJournalRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
   '/api/auth/github': typeof ApiAuthGithubRoute
@@ -111,7 +129,9 @@ export interface FileRouteTypes {
     | '/'
     | '/signin'
     | '/courses'
+    | '/history'
     | '/journal'
+    | '/settings'
     | '/api/auth/callback'
     | '/api/auth/github'
     | '/api/auth/logout'
@@ -121,7 +141,9 @@ export interface FileRouteTypes {
   to:
     | '/signin'
     | '/courses'
+    | '/history'
     | '/journal'
+    | '/settings'
     | '/'
     | '/api/auth/callback'
     | '/api/auth/github'
@@ -133,7 +155,9 @@ export interface FileRouteTypes {
     | '/_app'
     | '/signin'
     | '/_app/courses'
+    | '/_app/history'
     | '/_app/journal'
+    | '/_app/settings'
     | '/_app/'
     | '/api/auth/callback'
     | '/api/auth/github'
@@ -182,11 +206,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCoursesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/history': {
+      id: '/_app/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/journal': {
       id: '/_app/journal'
       path: '/journal'
       fullPath: '/journal'
       preLoaderRoute: typeof AppJournalRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/auth/callback': {
@@ -229,13 +267,17 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppCoursesRoute: typeof AppCoursesRoute
+  AppHistoryRoute: typeof AppHistoryRoute
   AppJournalRoute: typeof AppJournalRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCoursesRoute: AppCoursesRoute,
+  AppHistoryRoute: AppHistoryRoute,
   AppJournalRoute: AppJournalRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

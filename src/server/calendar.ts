@@ -48,6 +48,9 @@ export const calendarStatus = createServerFn({ method: 'GET' }).handler(
       connected: Boolean(settings?.googleRefreshToken),
       calendarId: settings?.googleCalendarId ?? null,
       hideCompletedAfterMinutes: settings?.hideCompletedAfterMinutes ?? null,
+      dayStart: settings?.dayStart ?? '09:00',
+      dayEnd: settings?.dayEnd ?? '22:00',
+      breakMinutes: settings?.breakMinutes ?? 10,
     }
   },
 )
@@ -58,6 +61,15 @@ export const savePreferences = createServerFn({ method: 'POST' })
     z.object({
       // Null means work the delay out from priority instead.
       hideCompletedAfterMinutes: z.number().int().min(0).max(1440).nullable(),
+      dayStart: z
+        .string()
+        .regex(/^\d{2}:\d{2}$/)
+        .optional(),
+      dayEnd: z
+        .string()
+        .regex(/^\d{2}:\d{2}$/)
+        .optional(),
+      breakMinutes: z.number().int().min(0).max(120).optional(),
     }),
   )
   .handler(async ({ data }) => {

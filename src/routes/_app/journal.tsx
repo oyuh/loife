@@ -70,22 +70,28 @@ function Journal() {
   const { days, today } = useJournal()
   const [extraDate, setExtraDate] = useState('')
 
-  // A day picked here is prepended so it can be written into before it exists,
-  // which is what makes planning ahead possible rather than only looking back.
+  // Picking a date focuses that one day rather than slotting it into the list.
+  // Sorted in, a past date landed hundreds of pixels down with no feedback,
+  // which read as the picker doing nothing at all.
   const shown = useMemo(() => {
-    if (!extraDate || days.some((day) => day.date === extraDate)) return days
-    const placeholder = {
-      id: -2,
-      date: extraDate,
-      kind: 'journal' as const,
-      title: null,
-      body: null,
-      courseId: null,
-      location: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-    return [...days, placeholder].sort((a, b) => b.date.localeCompare(a.date))
+    if (!extraDate) return days
+
+    const existing = days.find((day) => day.date === extraDate)
+    if (existing) return [existing]
+
+    return [
+      {
+        id: -2,
+        date: extraDate,
+        kind: 'journal' as const,
+        title: null,
+        body: null,
+        courseId: null,
+        location: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]
   }, [days, extraDate])
 
   let lastMonth = ''
@@ -102,7 +108,9 @@ function Journal() {
 
       <div className="mb-8 flex flex-wrap items-end gap-2">
         <Field className="min-w-0 flex-1">
-          <FieldLabel htmlFor="journal-jump">Write on another day</FieldLabel>
+          <FieldLabel htmlFor="journal-jump">
+            {extraDate ? 'Showing one day' : 'Write on another day'}
+          </FieldLabel>
           <Input
             className="h-11"
             id="journal-jump"
@@ -115,9 +123,9 @@ function Journal() {
           <Button
             className="min-h-11"
             onClick={() => setExtraDate('')}
-            variant="ghost"
+            variant="secondary"
           >
-            Clear
+            Back to all days
           </Button>
         )}
       </div>

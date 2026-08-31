@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Input } from '#/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -71,6 +72,69 @@ export function Preferences() {
           ))}
         </SelectContent>
       </Select>
+    </div>
+  )
+}
+
+/** The hours the planner is allowed to fill. */
+export function DayWindow() {
+  const queryClient = useQueryClient()
+
+  const { data: status } = useQuery({
+    queryKey: ['calendar-status'],
+    queryFn: () => calendarStatus(),
+  })
+
+  const save = useMutation({
+    mutationFn: (patch: { dayStart?: string; dayEnd?: string }) =>
+      savePreferences({
+        data: {
+          hideCompletedAfterMinutes: status?.hideCompletedAfterMinutes ?? null,
+          ...patch,
+        },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-status'] })
+      toast.success('Saved')
+    },
+    onError: () => toast.error('Could not save that'),
+  })
+
+  if (!status) return null
+
+  return (
+    <div className="space-y-1.5 rounded-lg border border-border p-4">
+      <p className="font-medium text-sm">Hours to plan into</p>
+      <p className="text-muted-foreground text-sm">
+        Plan my day only suggests times inside this window, and never over a
+        class.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-3">
+        <div className="space-y-1.5">
+          <label className="text-muted-foreground text-xs" htmlFor="day-start">
+            From
+          </label>
+          <Input
+            className="h-11 w-32"
+            defaultValue={status.dayStart.slice(0, 5)}
+            id="day-start"
+            onBlur={(event) => save.mutate({ dayStart: event.target.value })}
+            type="time"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-muted-foreground text-xs" htmlFor="day-end">
+            Until
+          </label>
+          <Input
+            className="h-11 w-32"
+            defaultValue={status.dayEnd.slice(0, 5)}
+            id="day-end"
+            onBlur={(event) => save.mutate({ dayEnd: event.target.value })}
+            type="time"
+          />
+        </div>
+      </div>
     </div>
   )
 }

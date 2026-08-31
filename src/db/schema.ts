@@ -82,6 +82,11 @@ export const items = pgTable('items', {
   status: itemStatus('status').notNull().default('todo'),
   // When it was ticked, so the row can say so and linger before hiding.
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  // How long you think it takes, which is what the planner schedules against.
+  estimatedMinutes: smallint('estimated_minutes'),
+  // How long it actually took, recorded on completion. Kept separate so the
+  // estimate stays honest rather than being overwritten by the outcome.
+  actualMinutes: smallint('actual_minutes'),
   location: text('location'),
   notes: text('notes'),
   googleEventId: text('google_event_id'),
@@ -192,6 +197,11 @@ export const settings = pgTable(
     // Null means work it out from priority. A number is a fixed override in
     // minutes, so a mis-tap has however long you want to catch it.
     hideCompletedAfterMinutes: smallint('hide_completed_after_minutes'),
+    // The window the planner is allowed to fill, as local `HH:MM`.
+    dayStart: time('day_start').notNull().default('09:00'),
+    dayEnd: time('day_end').notNull().default('22:00'),
+    // Minutes of breathing room left between scheduled blocks.
+    breakMinutes: smallint('break_minutes').notNull().default(10),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow()

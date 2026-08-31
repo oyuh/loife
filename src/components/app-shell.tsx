@@ -1,5 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { CalendarCheck, NotebookPen, Plus, Search } from 'lucide-react'
+import {
+  CalendarCheck,
+  History,
+  NotebookPen,
+  Plus,
+  Search,
+  Settings,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '#/lib/utils'
 
@@ -79,6 +86,26 @@ export function AppShell({
           <Plus aria-hidden="true" className="size-5 md:size-4" />
           <span>Add</span>
         </button>
+
+        {/* Desktop only. The phone keeps four tabs and reaches these through
+            search, which is why Courses moved there too. */}
+        <Link
+          activeProps={{ 'data-active': 'true', 'aria-current': 'page' }}
+          className={cn(TAB_CLASS, 'hidden md:flex')}
+          to="/history"
+        >
+          <History aria-hidden="true" className="size-4" />
+          <span>History</span>
+        </Link>
+
+        <Link
+          activeProps={{ 'data-active': 'true', 'aria-current': 'page' }}
+          className={cn(TAB_CLASS, 'hidden md:flex')}
+          to="/settings"
+        >
+          <Settings aria-hidden="true" className="size-4" />
+          <span>Settings</span>
+        </Link>
 
         <form
           action="/api/auth/logout"

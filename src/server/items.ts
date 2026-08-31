@@ -21,6 +21,8 @@ export interface ItemRow {
   location: string | null
   notes: string | null
   completedAt: Date | null
+  estimatedMinutes: number | null
+  actualMinutes: number | null
   attachmentCount: number
   course: {
     id: number
@@ -51,6 +53,8 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
         location: items.location,
         notes: items.notes,
         completedAt: items.completedAt,
+        estimatedMinutes: items.estimatedMinutes,
+        actualMinutes: items.actualMinutes,
         courseId: courses.id,
         courseName: courses.name,
         courseCode: courses.code,
@@ -87,6 +91,8 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
 const statusInput = z.object({
   id: z.number().int().positive(),
   status: z.enum(['todo', 'doing', 'done']),
+  /** Recorded on completion. Kept apart from the estimate on purpose. */
+  actualMinutes: z.number().int().min(1).max(1440).nullable().default(null),
 })
 
 export const setItemStatus = createServerFn({ method: 'POST' })
@@ -102,12 +108,19 @@ export const setItemStatus = createServerFn({ method: 'POST' })
         // Cleared on reopening, so the grace period restarts rather than
         // measuring from a completion that was undone.
         completedAt: done ? new Date() : null,
+        // Only written when supplied, so reopening does not wipe a time that
+        // was already recorded.
+        ...(done && data.actualMinutes
+          ? { actualMinutes: data.actualMinutes }
+          : {}),
       })
       .where(eq(items.id, data.id))
 
     await db.insert(itemEvents).values({
       itemId: data.id,
       kind: done ? 'completed' : 'reopened',
+      detail:
+        done && data.actualMinutes ? `took ${data.actualMinutes} min` : null,
     })
   })
 
@@ -115,6 +128,8 @@ const emptyToNull = (value: string | null | undefined) => {
   const trimmed = value?.trim()
   return trimmed ? trimmed : null
 }
+
+const minutesField = z.number().int().min(1).max(1440).nullable()
 
 const createInput = z.object({
   name: z.string().trim().min(1, 'Give it a name').max(200),
@@ -125,6 +140,7 @@ const createInput = z.object({
   priority: z.number().int().min(1).max(5),
   location: z.string().max(200).nullable().transform(emptyToNull),
   notes: z.string().max(2000).nullable().transform(emptyToNull),
+  estimatedMinutes: minutesField.default(null),
 })
 
 export const createItem = createServerFn({ method: 'POST' })

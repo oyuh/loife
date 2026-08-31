@@ -4,8 +4,10 @@ import {
   BookOpen,
   CalendarCheck,
   ClipboardList,
+  History,
   NotebookPen,
   Plus,
+  Settings,
 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import {
@@ -210,6 +212,20 @@ export function CommandPalette({
               >
                 <NotebookPen />
                 <span>Journal</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => run(() => navigate({ to: '/history' }))}
+                value="history"
+              >
+                <History />
+                <span>History</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => run(() => navigate({ to: '/settings' }))}
+                value="settings"
+              >
+                <Settings />
+                <span>Settings</span>
               </CommandItem>
             </CommandGroup>
 

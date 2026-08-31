@@ -63,8 +63,19 @@ const TYPES = [
   { value: 'exam', label: 'Exam' },
 ] as const
 
+/** Round numbers people actually think in, rather than a free minutes box. */
+const ESTIMATES = [
+  { value: '', label: 'Not sure' },
+  { value: '15', label: '15m' },
+  { value: '30', label: '30m' },
+  { value: '60', label: '1h' },
+  { value: '120', label: '2h' },
+  { value: '240', label: '4h' },
+] as const
+
 const EMPTY = {
   name: '',
+  estimatedMinutes: '',
   courseId: 'none',
   type: 'task',
   date: '',
@@ -104,6 +115,9 @@ export function AddItemDialog({
       date: due.date,
       time: due.time,
       priority: String(item.priority),
+      estimatedMinutes: item.estimatedMinutes
+        ? String(item.estimatedMinutes)
+        : '',
       location: item.location ?? '',
       notes: item.notes ?? '',
     })
@@ -119,6 +133,9 @@ export function AddItemDialog({
         dueAt,
         allDay,
         priority: Number(form.priority),
+        estimatedMinutes: form.estimatedMinutes
+          ? Number(form.estimatedMinutes)
+          : null,
         location: form.location,
         notes: form.notes,
       }
@@ -368,6 +385,30 @@ function ItemForm({
         </ToggleGroup>
         <p className="text-muted-foreground text-xs">
           {PRIORITY_LABELS[Number(form.priority)]}
+        </p>
+      </Field>
+
+      <Field>
+        <FieldLabel>How long will it take</FieldLabel>
+        <ToggleGroup
+          className="w-full"
+          onValueChange={(value: string) => set('estimatedMinutes', value)}
+          type="single"
+          value={form.estimatedMinutes}
+          variant="outline"
+        >
+          {ESTIMATES.map((option) => (
+            <ToggleGroupItem
+              className="min-h-11 flex-1"
+              key={option.label}
+              value={option.value}
+            >
+              {option.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <p className="text-muted-foreground text-xs">
+          Only work with an estimate can be scheduled into your day.
         </p>
       </Field>
 

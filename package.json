@@ -21,7 +21,8 @@
     "db:seed": "node --env-file=.env scripts/seed.mjs",
     "check:dates": "node --experimental-strip-types scripts/check-dates.ts",
     "check:syllabus": "node --experimental-strip-types scripts/check-syllabus.ts",
-    "check:search": "node --experimental-strip-types scripts/check-search.ts"
+    "check:search": "node --experimental-strip-types scripts/check-search.ts",
+    "check:plan": "node --experimental-strip-types scripts/check-plan.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",

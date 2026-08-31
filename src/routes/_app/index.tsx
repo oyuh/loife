@@ -17,6 +17,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AddItemDialog } from '#/components/add-item-dialog'
+import { DayPlan } from '#/components/day-plan'
 import { InlineLog } from '#/components/inline-log'
 import { ItemDetail } from '#/components/item-detail'
 import { RowContextMenu, RowMenuButton } from '#/components/item-row-actions'
@@ -213,6 +214,8 @@ function Today() {
           {late > 0 && <span className="text-destructive">{late} overdue</span>}
         </p>
       </header>
+
+      <DayPlan items={items} />
 
       {groups.length === 0 ? (
         <Empty className="border border-dashed">

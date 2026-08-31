@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { CalendarStatus } from '#/components/calendar-status'
 import { CourseDialog } from '#/components/course-dialog'
 import { Pill } from '#/components/kibo-ui/pill'
-import { Preferences } from '#/components/preferences'
 import { Button } from '#/components/ui/button'
 import {
   Empty,
@@ -75,9 +74,8 @@ function Courses() {
         </Button>
       </header>
 
-      <div className="mb-6 space-y-3">
+      <div className="mb-6">
         <CalendarStatus />
-        <Preferences />
       </div>
 
       {courses.length === 0 ? (
