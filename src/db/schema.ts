@@ -22,6 +22,13 @@ export const itemType = pgEnum('item_type', [
 ])
 export const itemStatus = pgEnum('item_status', ['todo', 'doing', 'done'])
 export const logKind = pgEnum('log_kind', ['journal', 'event'])
+export const itemEventKind = pgEnum('item_event_kind', [
+  'created',
+  'completed',
+  'reopened',
+  'moved',
+  'edited',
+])
 
 /** Timestamps every synced table carries, so the reconcile sweep can compare them. */
 const syncTimestamps = {
@@ -73,6 +80,8 @@ export const items = pgTable('items', {
   // remaining in a way three named levels cannot.
   priority: smallint('priority').notNull().default(3),
   status: itemStatus('status').notNull().default('todo'),
+  // When it was ticked, so the row can say so and linger before hiding.
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   location: text('location'),
   notes: text('notes'),
   googleEventId: text('google_event_id'),
@@ -109,6 +118,23 @@ export const logEntries = pgTable(
       .where(sql`${t.kind} = 'journal'`),
   ],
 )
+
+/**
+ * What happened to an item and when.
+ *
+ * Append only. The row itself holds the current state, this holds how it got
+ * there, which is what makes "ticked at 9:14, moved twice before that" answerable.
+ */
+export const itemEvents = pgTable('item_events', {
+  id: serial('id').primaryKey(),
+  itemId: integer('item_id')
+    .notNull()
+    .references(() => items.id, { onDelete: 'cascade' }),
+  kind: itemEventKind('kind').notNull(),
+  /** A short human sentence, such as "moved to Oct 3". */
+  detail: text('detail'),
+  at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 export const attachments = pgTable(
   'attachments',
@@ -148,6 +174,7 @@ export type Item = typeof items.$inferSelect
 export type NewItem = typeof items.$inferInsert
 export type LogEntry = typeof logEntries.$inferSelect
 export type NewLogEntry = typeof logEntries.$inferInsert
+export type ItemEvent = typeof itemEvents.$inferSelect
 export type Attachment = typeof attachments.$inferSelect
 export type NewAttachment = typeof attachments.$inferInsert
 
@@ -162,6 +189,9 @@ export const settings = pgTable(
     id: integer('id').primaryKey().default(1),
     googleRefreshToken: text('google_refresh_token'),
     googleCalendarId: text('google_calendar_id'),
+    // Null means work it out from priority. A number is a fixed override in
+    // minutes, so a mis-tap has however long you want to catch it.
+    hideCompletedAfterMinutes: smallint('hide_completed_after_minutes'),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .defaultNow()

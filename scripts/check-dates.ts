@@ -535,3 +535,82 @@ assert.equal(toCourseEvent(course({ location: null }), 'America/Chicago')?.locat
 console.log('ok  a cleared location is absent, which a PUT removes')
 
 console.log('\nedit propagation checks passed')
+
+// --- completion grace ----------------------------------------------------
+
+const { completionGraceMinutes, isCompletionExpired, DEFAULT_GRACE_MINUTES } =
+  await import('../src/lib/urgency.ts')
+
+const ago = (minutes: number) => new Date(now.getTime() - minutes * 60_000)
+const ticked = (over: Partial<Urgent>) =>
+  make({ status: 'done', dueAt: at('2026-09-10T09:00:00'), ...over })
+
+// Important work lingers longest, because mis-ticking a P1 is the mistake
+// worth catching.
+assert.equal(completionGraceMinutes(1, null), 120)
+assert.equal(completionGraceMinutes(3, null), 30)
+assert.equal(completionGraceMinutes(5, null), 10)
+console.log('ok  grace scales with priority')
+
+// A preference beats the priority default outright, zero included.
+assert.equal(completionGraceMinutes(1, 5), 5)
+assert.equal(completionGraceMinutes(5, 240), 240)
+assert.equal(completionGraceMinutes(1, 0), 0, 'zero means hide at once')
+assert.equal(completionGraceMinutes(1, -5), 0, 'negative is clamped, not inverted')
+console.log('ok  an override wins, including zero')
+
+// The bug this exists for: an overdue item ticked by accident used to vanish
+// immediately. It now stays for its grace period.
+assert.equal(
+  isCompletionExpired(ticked({ priority: 1, completedAt: ago(5) }), now),
+  false,
+  'a P1 ticked five minutes ago is still visible',
+)
+assert.equal(
+  isCompletionExpired(ticked({ priority: 1, completedAt: ago(200) }), now),
+  true,
+  'and gone once two hours have passed',
+)
+assert.equal(
+  isCompletionExpired(ticked({ priority: 5, completedAt: ago(15) }), now),
+  true,
+  'a P5 goes sooner',
+)
+console.log('ok  a ticked overdue item lingers rather than vanishing')
+
+// Unfinished work is never hidden by this.
+assert.equal(isCompletionExpired(make({ status: 'todo' }), now), false)
+console.log('ok  nothing unfinished is ever hidden')
+
+// Rows ticked before completedAt existed fall back to the old day rule.
+assert.equal(
+  isCompletionExpired(ticked({ completedAt: null }), now),
+  true,
+  'an old overdue completion still drops off',
+)
+assert.equal(
+  isCompletionExpired(
+    ticked({ completedAt: null, dueAt: at('2026-09-15T09:00:00') }),
+    now,
+  ),
+  false,
+  'an old completion due today stays for the day',
+)
+console.log('ok  rows with no recorded time fall back to the day rule')
+
+// And the grouping honours it.
+const lingering = ticked({ priority: 1, completedAt: ago(5) })
+assert.equal(
+  groupByUrgency([lingering], now).flatMap((g) => g.items).length,
+  1,
+  'still grouped while within grace',
+)
+assert.equal(
+  groupByUrgency([lingering], now, 1).flatMap((g) => g.items).length,
+  0,
+  'and dropped when the preference shortens it',
+)
+console.log('ok  grouping honours the grace and the override')
+
+assert.equal(DEFAULT_GRACE_MINUTES, 30)
+console.log('\ncompletion grace checks passed')

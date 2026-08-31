@@ -1,7 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
+import { z } from 'zod'
 import { db } from '#/db'
-import { items } from '#/db/schema'
+import { items, settings } from '#/db/schema'
 import { loadSettings } from '#/lib/google.server'
 import { requireUser } from '#/lib/session.server'
 import { syncItem } from './calendar.server'
@@ -46,6 +47,23 @@ export const calendarStatus = createServerFn({ method: 'GET' }).handler(
     return {
       connected: Boolean(settings?.googleRefreshToken),
       calendarId: settings?.googleCalendarId ?? null,
+      hideCompletedAfterMinutes: settings?.hideCompletedAfterMinutes ?? null,
     }
   },
 )
+
+/** Preferences live in the same single settings row as the Google grant. */
+export const savePreferences = createServerFn({ method: 'POST' })
+  .validator(
+    z.object({
+      // Null means work the delay out from priority instead.
+      hideCompletedAfterMinutes: z.number().int().min(0).max(1440).nullable(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    await requireUser()
+    await db
+      .insert(settings)
+      .values({ id: 1, ...data })
+      .onConflictDoUpdate({ target: settings.id, set: data })
+  })

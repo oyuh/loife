@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Check, Pencil, Trash2, Undo2 } from 'lucide-react'
 import { AttachmentsList } from '#/components/attachments-list'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
@@ -27,7 +28,7 @@ import {
 import { MOVE_TARGETS, type MoveTarget } from '#/lib/move-targets'
 import { PRIORITY_LABELS, PRIORITY_LEVELS } from '#/lib/urgency'
 import { useMediaQuery } from '#/lib/use-media-query'
-import type { ItemRow } from '#/server/items'
+import { type ItemRow, listItemEvents } from '#/server/items'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
   weekday: 'long',
@@ -76,6 +77,9 @@ export function ItemDetail({
   const done = item.status === 'done'
 
   const subtitle = [
+    done && item.completedAt
+      ? `Done ${dateFormat.format(item.completedAt)} at ${timeFormat.format(item.completedAt)}`
+      : null,
     item.course?.code ?? item.course?.name,
     item.type,
     item.dueAt
@@ -166,6 +170,8 @@ export function ItemDetail({
         )}
       </section>
 
+      <History itemId={item.id} />
+
       <Button
         className="min-h-11 w-full text-destructive hover:text-destructive"
         onClick={onDelete}
@@ -215,5 +221,52 @@ export function ItemDetail({
         {body}
       </DialogContent>
     </Dialog>
+  )
+}
+
+const EVENT_WORDS: Record<string, string> = {
+  created: 'Added',
+  completed: 'Marked done',
+  reopened: 'Reopened',
+  moved: 'Moved',
+  edited: 'Edited',
+}
+
+const stampFormat = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+/** What has happened to this item, newest first. */
+function History({ itemId }: { itemId: number }) {
+  const { data: events = [] } = useQuery({
+    queryKey: ['item-events', itemId],
+    queryFn: () => listItemEvents({ data: { id: itemId } }),
+  })
+
+  if (events.length === 0) return null
+
+  return (
+    <section className="space-y-1.5">
+      <p className="font-medium text-sm">History</p>
+      <ul className="space-y-1">
+        {events.map((event) => (
+          <li
+            className="flex items-baseline justify-between gap-3 text-sm"
+            key={event.id}
+          >
+            <span>
+              {EVENT_WORDS[event.kind] ?? event.kind}
+              {event.detail ? `, ${event.detail}` : ''}
+            </span>
+            <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
+              {stampFormat.format(event.at)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

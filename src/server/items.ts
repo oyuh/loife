@@ -1,8 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, sql } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '#/db'
-import { attachments, courses, items } from '#/db/schema'
+import { attachments, courses, itemEvents, items } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
 import { removeItemEvent, syncItem } from './calendar.server'
 
@@ -20,6 +20,7 @@ export interface ItemRow {
   status: 'todo' | 'doing' | 'done'
   location: string | null
   notes: string | null
+  completedAt: Date | null
   attachmentCount: number
   course: {
     id: number
@@ -49,6 +50,7 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
         status: items.status,
         location: items.location,
         notes: items.notes,
+        completedAt: items.completedAt,
         courseId: courses.id,
         courseName: courses.name,
         courseCode: courses.code,
@@ -91,10 +93,22 @@ export const setItemStatus = createServerFn({ method: 'POST' })
   .validator(statusInput)
   .handler(async ({ data }) => {
     await requireUser()
+    const done = data.status === 'done'
+
     await db
       .update(items)
-      .set({ status: data.status })
+      .set({
+        status: data.status,
+        // Cleared on reopening, so the grace period restarts rather than
+        // measuring from a completion that was undone.
+        completedAt: done ? new Date() : null,
+      })
       .where(eq(items.id, data.id))
+
+    await db.insert(itemEvents).values({
+      itemId: data.id,
+      kind: done ? 'completed' : 'reopened',
+    })
   })
 
 const emptyToNull = (value: string | null | undefined) => {
@@ -121,6 +135,7 @@ export const createItem = createServerFn({ method: 'POST' })
       .insert(items)
       .values(data)
       .returning({ id: items.id })
+    await db.insert(itemEvents).values({ itemId: row.id, kind: 'created' })
     // Deliberately not awaited. The calendar is a rendering of the database,
     // so a slow Google call must never hold up the response.
     void syncItem(row.id)
@@ -142,6 +157,15 @@ export const setItemDue = createServerFn({ method: 'POST' })
       .update(items)
       .set({ dueAt: data.dueAt, allDay: data.allDay })
       .where(eq(items.id, data.id))
+
+    await db.insert(itemEvents).values({
+      itemId: data.id,
+      kind: 'moved',
+      detail: data.dueAt
+        ? `moved to ${data.dueAt.toDateString()}`
+        : 'due date cleared',
+    })
+
     void syncItem(data.id)
   })
 
@@ -208,3 +232,35 @@ export const updateItemPriority = createServerFn({ method: 'POST' })
       .where(eq(items.id, data.id))
     void syncItem(data.id)
   })
+
+/** What happened to one item, newest first. */
+export const listItemEvents = createServerFn({ method: 'GET' })
+  .validator(z.object({ id: z.number().int().positive() }))
+  .handler(async ({ data }) => {
+    await requireUser()
+    return db
+      .select()
+      .from(itemEvents)
+      .where(eq(itemEvents.itemId, data.id))
+      .orderBy(desc(itemEvents.at))
+      .limit(50)
+  })
+
+/** Recent activity across everything, for the Today footer. */
+export const listRecentActivity = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    await requireUser()
+    return db
+      .select({
+        id: itemEvents.id,
+        kind: itemEvents.kind,
+        detail: itemEvents.detail,
+        at: itemEvents.at,
+        name: items.name,
+      })
+      .from(itemEvents)
+      .innerJoin(items, eq(itemEvents.itemId, items.id))
+      .orderBy(desc(itemEvents.at))
+      .limit(30)
+  },
+)

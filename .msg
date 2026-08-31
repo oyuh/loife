@@ -1,28 +1,27 @@
-Detail sheet, an add form for anything, future journal days, nav reorder
+Completion times, history, a grace period before hiding, and a usable swipe
 
-Tapping a Today row used to drop straight into a form. It now opens a detail
-sheet: the notes rendered, the files viewable, and the three things worth
-changing in a hurry, which are done, priority, and when. Edit is a button
-inside it rather than the only way in.
+Ticking a row now records when. The row says "done 11:56 AM" and the detail
+sheet leads with the full stamp, so a finished thing shows it rather than only
+implying it. Reopening clears the time so the grace period restarts instead of
+measuring from a completion that was undone.
 
-The add form was assignment shaped and cluttered. It is Add anything now, with
-To do first, and the layout is name, kind, when, priority. Course, place,
-notes and files fold away, so the common case is four controls rather than
-nine.
+item_events records what happened and when, append only: created, completed,
+reopened, moved. The row holds current state, this holds how it got there. The
+detail sheet lists it newest first.
 
-Files can be attached while adding. An attachment row needs an item id, which
-a new item does not have yet, so the files are held and uploaded once the save
-returns one.
+Finished work no longer vanishes on the tap. Ticking is one gesture and easy to
+hit by accident, so a row lingers before dropping off, longest for the work
+that matters most:
 
-The journal takes any date, ahead or behind, not only days that already exist.
-A chosen day opens ready to type and is labelled Planned when it is in the
-future.
+  P1  2 hours      P2  1 hour      P3  30 minutes
+  P4  15 minutes   P5  10 minutes
 
-Nav is Today, Search, Journal, Add, with Today on the left at twice the width.
-Courses moved into the palette, since a term's classes are set up once and then
-rarely touched.
+A preference on the Courses page overrides that with a fixed delay, zero
+included, which means hide at once. Rows ticked before this existed have no
+recorded time and fall back to the old rule of staying only on their due day,
+which is tested alongside the rest.
 
-Two fixes in the new code. A label wrapping a Radix Select associates with
-nothing, because the trigger is a button, so the trigger carries its own name.
-And staged files key on name, size and modified time, since two files can share
-a name and a position shifts when one is removed.
+The swipe menu was unusable. Three labelled buttons needed 176px, which on a
+375px screen clipped Delete against the right edge and pushed the row's own
+text off the left. They are icons now at 52px each, and all three sit inside
+the viewport with the row title still readable at x=21. Measured, not guessed.

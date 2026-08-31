@@ -23,6 +23,56 @@ export interface Urgent {
   priority: number
   status: 'todo' | 'doing' | 'done'
   name: string
+  /** When it was ticked, which is what the grace period counts from. */
+  completedAt?: Date | null
+}
+
+/**
+ * How long a ticked item stays on screen before it disappears.
+ *
+ * Ticking is one tap and easy to do by accident, so nothing vanishes the
+ * instant it is marked. Important work lingers longest, because mis-ticking a
+ * P1 is the mistake worth catching.
+ */
+const GRACE_MINUTES_BY_PRIORITY: Record<number, number> = {
+  1: 120,
+  2: 60,
+  3: 30,
+  4: 15,
+  5: 10,
+}
+
+export const DEFAULT_GRACE_MINUTES = 30
+
+export function completionGraceMinutes(
+  priority: number,
+  override: number | null | undefined,
+): number {
+  // A number set in preferences wins outright, including zero, which means
+  // hide it at once.
+  if (typeof override === 'number') return Math.max(0, override)
+  return GRACE_MINUTES_BY_PRIORITY[priority] ?? DEFAULT_GRACE_MINUTES
+}
+
+/**
+ * Whether a finished item has been finished long enough to drop off the list.
+ *
+ * An item ticked before this existed has no completedAt, so it falls back to
+ * the old rule of staying only on the day it was due.
+ */
+export function isCompletionExpired(
+  item: Urgent,
+  now: Date = new Date(),
+  override?: number | null,
+): boolean {
+  if (item.status !== 'done') return false
+
+  if (!item.completedAt) {
+    return bucketFor(item, now) !== 'today'
+  }
+
+  const minutes = completionGraceMinutes(item.priority, override)
+  return now.getTime() - item.completedAt.getTime() > minutes * 60_000
 }
 
 export const PRIORITY_LEVELS = [1, 2, 3, 4, 5] as const
@@ -147,12 +197,15 @@ export interface BucketGroup<T extends Urgent> {
 export function groupByUrgency<T extends Urgent>(
   items: T[],
   now: Date = new Date(),
+  hideCompletedAfterMinutes?: number | null,
 ): BucketGroup<T>[] {
   const groups = new Map<Bucket, T[]>()
 
   for (const item of items) {
     const bucket = bucketFor(item, now)
-    if (item.status === 'done' && bucket !== 'today') continue
+    // A ticked item stays put until its grace period runs out, wherever it
+    // sits, so an accidental tap on an overdue row is recoverable.
+    if (isCompletionExpired(item, now, hideCompletedAfterMinutes)) continue
     const existing = groups.get(bucket)
     if (existing) existing.push(item)
     else groups.set(bucket, [item])

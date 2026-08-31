@@ -1,10 +1,19 @@
 import {
   useMutation,
+  useQuery,
   useQueryClient,
   useSuspenseQuery,
 } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { CalendarCheck, ChevronRight, Paperclip } from 'lucide-react'
+import {
+  CalendarCheck,
+  Check,
+  ChevronRight,
+  Paperclip,
+  Pencil,
+  Trash2,
+  Undo2,
+} from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AddItemDialog } from '#/components/add-item-dialog'
@@ -12,7 +21,7 @@ import { InlineLog } from '#/components/inline-log'
 import { ItemDetail } from '#/components/item-detail'
 import { RowContextMenu, RowMenuButton } from '#/components/item-row-actions'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
-import { SwipeRow } from '#/components/swipe-row'
+import { SwipeAction, SwipeRow } from '#/components/swipe-row'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +64,7 @@ import {
   PRIORITY_LABELS,
 } from '#/lib/urgency'
 import { cn } from '#/lib/utils'
+import { calendarStatus } from '#/server/calendar'
 import {
   deleteItem,
   type ItemRow,
@@ -185,8 +195,13 @@ function Today() {
     onDelete: () => setConfirming(item),
   })
 
+  const { data: prefs } = useQuery({
+    queryKey: ['calendar-status'],
+    queryFn: () => calendarStatus(),
+  })
+
   const now = new Date()
-  const groups = groupByUrgency(items, now)
+  const groups = groupByUrgency(items, now, prefs?.hideCompletedAfterMinutes)
   const late = overdueCount(items, now)
 
   return (
@@ -244,29 +259,25 @@ function Today() {
                       <SwipeRow
                         actions={
                           <>
-                            <Button
-                              className="h-full flex-1 rounded-none"
+                            <SwipeAction
+                              label={actions.done ? 'Reopen' : 'Mark done'}
                               onClick={actions.onToggle}
-                              variant="secondary"
                             >
-                              {actions.done ? 'Undo' : 'Done'}
-                            </Button>
-                            <Button
-                              className="h-full flex-1 rounded-none"
-                              onClick={actions.onEdit}
-                              variant="secondary"
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              className="h-full flex-1 rounded-none"
+                              {actions.done ? <Undo2 /> : <Check />}
+                            </SwipeAction>
+                            <SwipeAction label="Edit" onClick={actions.onEdit}>
+                              <Pencil />
+                            </SwipeAction>
+                            <SwipeAction
+                              destructive
+                              label="Delete"
                               onClick={actions.onDelete}
-                              variant="destructive"
                             >
-                              Delete
-                            </Button>
+                              <Trash2 />
+                            </SwipeAction>
                           </>
                         }
+                        count={3}
                         key={item.id}
                       >
                         <RowContextMenu actions={actions}>
