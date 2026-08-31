@@ -44,11 +44,7 @@ import {
   ItemGroup,
   ItemTitle,
 } from '#/components/ui/item'
-import {
-  MOVE_TARGETS,
-  type MoveTarget,
-  moveTargetDate,
-} from '#/lib/move-targets'
+import { type MoveTarget, moveTargetDate } from '#/lib/move-targets'
 import { itemsQuery } from '#/lib/queries'
 import {
   BUCKET_COLORS,
@@ -94,7 +90,9 @@ function Today() {
   const [editing, setEditing] = useState<ItemRow | null>(null)
   // Collapsed rather than expanded, so the set stays empty in the common case
   // where everything is open.
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(['week', 'later', 'someday']),
+  )
   const [confirming, setConfirming] = useState<ItemRow | null>(null)
 
   const toggleSection = (bucket: string) =>
@@ -163,6 +161,7 @@ function Today() {
 
   const actionsFor = (item: ItemRow) => ({
     done: item.status === 'done',
+    onEdit: () => setEditing(item),
     onToggle: () =>
       toggle.mutate({
         id: item.id,
@@ -243,10 +242,10 @@ function Today() {
                             </Button>
                             <Button
                               className="h-full flex-1 rounded-none"
-                              onClick={() => actions.onMove(MOVE_TARGETS[1])}
+                              onClick={actions.onEdit}
                               variant="secondary"
                             >
-                              Tomorrow
+                              Edit
                             </Button>
                             <Button
                               className="h-full flex-1 rounded-none"
@@ -346,7 +345,9 @@ function Today() {
         </div>
       )}
 
-      <InlineLog />
+      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-10 -mx-5 mt-6 border-border border-t bg-background px-5 pt-3 pb-1 md:bottom-0 md:pb-3">
+        <InlineLog />
+      </div>
 
       <AlertDialog
         onOpenChange={(open) => {

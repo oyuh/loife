@@ -1,4 +1,11 @@
-import { CalendarClock, Check, MoreVertical, Trash2, Undo2 } from 'lucide-react'
+import {
+  CalendarClock,
+  Check,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Undo2,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '#/components/ui/button'
 import {
@@ -25,6 +32,7 @@ import { MOVE_TARGETS, type MoveTarget } from '#/lib/move-targets'
 
 export interface RowActions {
   done: boolean
+  onEdit: () => void
   onToggle: () => void
   onMove: (target: MoveTarget) => void
   onDelete: () => void
@@ -42,15 +50,20 @@ export function RowContextMenu({
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-48">
+        <ContextMenuItem onSelect={actions.onEdit}>
+          <Pencil />
+          <span>Edit</span>
+        </ContextMenuItem>
+
         <ContextMenuItem onSelect={actions.onToggle}>
           {actions.done ? <Undo2 /> : <Check />}
-          {actions.done ? 'Mark not done' : 'Mark done'}
+          <span>{actions.done ? 'Mark not done' : 'Mark done'}</span>
         </ContextMenuItem>
 
         <ContextMenuSub>
           <ContextMenuSubTrigger>
             <CalendarClock />
-            Move to
+            <span>Move to</span>
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
             {MOVE_TARGETS.map((target) => (
@@ -67,7 +80,7 @@ export function RowContextMenu({
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={actions.onDelete} variant="destructive">
           <Trash2 />
-          Delete
+          <span>Delete</span>
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
@@ -96,15 +109,20 @@ export function RowMenuButton({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={actions.onEdit}>
+          <Pencil />
+          <span>Edit</span>
+        </DropdownMenuItem>
+
         <DropdownMenuItem onSelect={actions.onToggle}>
           {actions.done ? <Undo2 /> : <Check />}
-          {actions.done ? 'Mark not done' : 'Mark done'}
+          <span>{actions.done ? 'Mark not done' : 'Mark done'}</span>
         </DropdownMenuItem>
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <CalendarClock />
-            Move to
+            <span>Move to</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {MOVE_TARGETS.map((target) => (
@@ -121,7 +139,7 @@ export function RowMenuButton({
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={actions.onDelete} variant="destructive">
           <Trash2 />
-          Delete
+          <span>Delete</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

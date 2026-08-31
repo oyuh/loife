@@ -39,7 +39,7 @@ export function InlineLog() {
 
   return (
     <form
-      className="mt-8 flex gap-2"
+      className="flex gap-2"
       onSubmit={(event) => {
         event.preventDefault()
         submit()

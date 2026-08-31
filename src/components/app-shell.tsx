@@ -35,14 +35,14 @@ export function AppShell({
   onOpenPalette: () => void
 }) {
   return (
-    <div className="min-h-dvh md:flex">
+    <div className="min-h-dvh md:flex md:items-start">
       <nav
         aria-label="Main"
         // pb-3 on top of the safe area inset. The inset alone leaves the row
         // flush against the home indicator, which is awkward to hit.
         className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-card
                    pb-[calc(env(safe-area-inset-bottom)+0.75rem)]
-                   md:static md:h-dvh md:w-56 md:shrink-0 md:flex-col md:gap-1
+                   md:sticky md:top-0 md:h-dvh md:w-56 md:shrink-0 md:flex-col md:gap-1
                    md:border-t-0 md:border-r md:p-3 md:pb-3"
       >
         <p className="hidden px-2 pb-4 pt-1 font-semibold text-sm tracking-tight md:block">
