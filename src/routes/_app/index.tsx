@@ -187,7 +187,7 @@ function Today() {
                           deviations get a pill. */}
                       {!done && item.priority !== 'normal' && (
                         <ItemActions>
-                          <Pill className="px-2 py-0.5 text-xs">
+                          <Pill>
                             <PillIndicator
                               variant={PRIORITY_INDICATOR[item.priority]}
                             />
