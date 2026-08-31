@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { getAppSession } from '#/lib/session'
+import { getAppSession } from '#/lib/session.server'
 
 export const Route = createFileRoute('/api/auth/logout')({
   server: {

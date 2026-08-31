@@ -5,7 +5,7 @@ import {
   fetchGitHubUser,
   isAllowedUser,
 } from '#/lib/github'
-import { getAppSession } from '#/lib/session'
+import { getAppSession } from '#/lib/session.server'
 
 function deny(message: string): Response {
   return new Response(message, {

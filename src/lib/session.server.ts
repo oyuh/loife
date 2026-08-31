@@ -39,3 +39,13 @@ export async function getSessionUser(): Promise<AppSession | null> {
   if (!githubId || !login || !avatarUrl) return null
   return { githubId, login, name: name ?? null, avatarUrl }
 }
+
+/**
+ * The signed-in user or a thrown error. Every server function calls this before
+ * touching the database, explicit at each call site so it stays greppable.
+ */
+export async function requireUser(): Promise<AppSession> {
+  const user = await getSessionUser()
+  if (!user) throw new Error('Not signed in')
+  return user
+}

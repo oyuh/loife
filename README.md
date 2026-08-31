@@ -69,10 +69,30 @@ Railway's `railway.json` pre-deploy command was the first approach and it never 
 
 This assumes one replica, which is the current setup. Running several would have them race to migrate on boot, so move this back to a single pre-deploy step before scaling up.
 
-## Checking the schema
+## Local database
+
+Start Postgres on port 5433, so it never collides with anything already on 5432:
 
 ```bash
-pnpm db:check
+docker run -d --name loife-pg -e POSTGRES_USER=loife -e POSTGRES_PASSWORD=loife -e POSTGRES_DB=loife -p 5433:5432 postgres:17-alpine
 ```
 
-Applies the migrations to an in-process Postgres and asserts the constraints reject bad rows. No Docker and no database required.
+Then set `DATABASE_URL=postgresql://loife:loife@localhost:5433/loife` in `.env` and run:
+
+```bash
+pnpm db:migrate && pnpm db:seed
+```
+
+`pnpm db:seed` fills three courses and ten items spread across overdue, today, this week, and later, so the Today view has every bucket to render. It refuses to run against any host other than localhost.
+
+`TZ` belongs in `.env` too. Day boundaries come from the host timezone, so a machine on UTC files an 11pm assignment under tomorrow.
+
+## Checks
+
+```bash
+pnpm db:check       # migrations apply and constraints reject bad rows
+pnpm check:urgency  # Today view bucketing and ordering
+pnpm check          # Biome lint and format
+```
+
+`db:check` runs against an in-process Postgres, so it needs neither Docker nor a database.
