@@ -1,18 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, Trash2 } from 'lucide-react'
+import { Eye, FileText, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { FileViewer } from '#/components/file-viewer'
 import {
   Dropzone,
   DropzoneContent,
   DropzoneEmptyState,
 } from '#/components/kibo-ui/dropzone'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '#/components/ui/alert-dialog'
 import { Button } from '#/components/ui/button'
 import { Progress } from '#/components/ui/progress'
 import { formatSize, MAX_UPLOAD_BYTES } from '#/lib/upload-limits'
 import {
   type AttachmentRow,
-  downloadUrl,
   listAttachments,
   recordUpload,
   removeAttachment,
@@ -27,6 +37,8 @@ export function AttachmentsPanel(owner: Owner) {
   const key = ['attachments', owner.itemId ?? null, owner.logEntryId ?? null]
   const queryClient = useQueryClient()
   const [progress, setProgress] = useState<number | null>(null)
+  const [viewing, setViewing] = useState<AttachmentRow | null>(null)
+  const [confirming, setConfirming] = useState<AttachmentRow | null>(null)
 
   const ownerIds = {
     itemId: owner.itemId ?? null,
@@ -84,14 +96,12 @@ export function AttachmentsPanel(owner: Owner) {
 
   const remove = useMutation({
     mutationFn: (id: number) => removeAttachment({ data: { id } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: key })
+      setConfirming(null)
+      toast.success('Deleted')
+    },
     onError: () => toast.error('Could not delete that'),
-  })
-
-  const open = useMutation({
-    mutationFn: (id: number) => downloadUrl({ data: { id } }),
-    onSuccess: ({ url }) => window.open(url, '_blank', 'noopener'),
-    onError: () => toast.error('Could not open that'),
   })
 
   return (
@@ -133,21 +143,19 @@ export function AttachmentsPanel(owner: Owner) {
               </div>
 
               <Button
-                aria-label={`Download ${file.filename}`}
+                aria-label={`View ${file.filename}`}
                 className="min-h-10"
-                disabled={open.isPending}
-                onClick={() => open.mutate(file.id)}
+                onClick={() => setViewing(file)}
                 size="icon"
                 type="button"
                 variant="ghost"
               >
-                <Download />
+                <Eye />
               </Button>
               <Button
                 aria-label={`Delete ${file.filename}`}
                 className="min-h-10"
-                disabled={remove.isPending}
-                onClick={() => remove.mutate(file.id)}
+                onClick={() => setConfirming(file)}
                 size="icon"
                 type="button"
                 variant="ghost"
@@ -158,6 +166,44 @@ export function AttachmentsPanel(owner: Owner) {
           ))}
         </ul>
       )}
+
+      <FileViewer
+        file={viewing}
+        onOpenChange={(open) => {
+          if (!open) setViewing(null)
+        }}
+      />
+
+      {/* Deleting an upload cannot be undone, so it asks first. */}
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) setConfirming(null)
+        }}
+        open={confirming !== null}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirming?.filename} is removed from storage as well, and there
+              is no undo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="min-h-11">Keep it</AlertDialogCancel>
+            <AlertDialogAction
+              className="min-h-11 bg-destructive text-background hover:bg-destructive/90"
+              disabled={remove.isPending}
+              onClick={(event) => {
+                event.preventDefault()
+                if (confirming) remove.mutate(confirming.id)
+              }}
+            >
+              {remove.isPending ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

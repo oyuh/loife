@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { AttachmentsPanel } from '#/components/attachments-panel'
+import { MarkdownField } from '#/components/markdown-field'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -19,7 +20,6 @@ import {
 } from '#/components/ui/drawer'
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
-import { Textarea } from '#/components/ui/textarea'
 import { journalQuery } from '#/lib/queries'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { getLogEntry, updateLogEntry } from '#/server/journal'
@@ -107,12 +107,13 @@ export function JournalDialog({
 
         <Field>
           <FieldLabel htmlFor={bodyId}>Entry</FieldLabel>
-          <Textarea
+          <MarkdownField
             className="min-h-48 font-normal"
             disabled={isLoading}
             id={bodyId}
-            onChange={(event) => setBody(event.target.value)}
+            onChange={setBody}
             placeholder="What happened."
+            rows={10}
             value={body}
           />
         </Field>

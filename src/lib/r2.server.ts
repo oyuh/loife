@@ -65,6 +65,8 @@ export function presignUpload(input: {
 export function presignDownload(input: {
   key: string
   filename: string
+  /** `inline` lets the browser render it in place, `attachment` saves it. */
+  disposition?: 'inline' | 'attachment'
 }): Promise<string> {
   return getSignedUrl(
     r2(),
@@ -72,7 +74,7 @@ export function presignDownload(input: {
       Bucket: requireEnv('R2_BUCKET'),
       Key: input.key,
       // Makes the browser save it under its real name rather than the UUID key.
-      ResponseContentDisposition: `attachment; filename="${input.filename.replace(/"/g, '')}"`,
+      ResponseContentDisposition: `${input.disposition ?? 'attachment'}; filename="${input.filename.replace(/"/g, '')}"`,
     }),
     { expiresIn: DOWNLOAD_URL_TTL_SECONDS },
   )

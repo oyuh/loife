@@ -107,18 +107,33 @@ export const recordUpload = createServerFn({ method: 'POST' })
   })
 
 export const downloadUrl = createServerFn({ method: 'POST' })
-  .validator(z.object({ id: z.number().int().positive() }))
+  .validator(
+    z.object({
+      id: z.number().int().positive(),
+      // `inline` is what the viewer uses, so the browser renders the file
+      // rather than saving it.
+      disposition: z.enum(['inline', 'attachment']).default('attachment'),
+    }),
+  )
   .handler(async ({ data }) => {
     await requireUser()
 
     const [row] = await db
-      .select({ key: attachments.key, filename: attachments.filename })
+      .select({
+        key: attachments.key,
+        filename: attachments.filename,
+        contentType: attachments.contentType,
+      })
       .from(attachments)
       .where(eq(attachments.id, data.id))
 
     if (!row) throw new Error('That attachment is gone')
 
-    return { url: await presignDownload(row) }
+    return {
+      url: await presignDownload({ ...row, disposition: data.disposition }),
+      contentType: row.contentType,
+      filename: row.filename,
+    }
   })
 
 export const removeAttachment = createServerFn({ method: 'POST' })

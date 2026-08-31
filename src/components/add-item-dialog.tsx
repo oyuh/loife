@@ -21,6 +21,7 @@ import {
   ComboboxList,
   ComboboxTrigger,
 } from '#/components/kibo-ui/combobox'
+import { MarkdownField } from '#/components/markdown-field'
 import { Button } from '#/components/ui/button'
 import { Calendar } from '#/components/ui/calendar'
 import {
@@ -46,7 +47,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '#/components/ui/popover'
-import { Textarea } from '#/components/ui/textarea'
 import { toDueFields, toDueValue } from '#/lib/due-date'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
 import { useMediaQuery } from '#/lib/use-media-query'
@@ -421,11 +421,10 @@ function AddItemForm({
               optional
             </span>
           </FieldLabel>
-          <Textarea
+          <MarkdownField
             id={notesId}
-            maxLength={2000}
-            onChange={(e) => set('notes', e.target.value)}
-            rows={3}
+            onChange={(value) => set('notes', value)}
+            rows={4}
             value={form.notes}
           />
         </Field>

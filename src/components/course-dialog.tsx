@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
+import { MarkdownField } from '#/components/markdown-field'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -28,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select'
-import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { trimSeconds, WEEKDAYS } from '#/lib/course-event'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
@@ -460,11 +460,10 @@ function CourseForm({
               optional
             </span>
           </FieldLabel>
-          <Textarea
+          <MarkdownField
             id={notesId}
-            maxLength={2000}
-            onChange={(e) => set('notes', e.target.value)}
-            rows={2}
+            onChange={(value) => set('notes', value)}
+            rows={3}
             value={form.notes}
           />
         </Field>
