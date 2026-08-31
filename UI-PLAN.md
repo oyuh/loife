@@ -44,7 +44,7 @@ Patterns are not in the registry, so they are copy-paste source from `packages/p
 | Course picker | `combobox/rich-content` pattern | Rich content lets the row carry the course colour |
 | Type and priority | `choicebox` component | Card-style radio, bigger tap targets than a select |
 | Due date and time | `date-picker/standard` variant 4 | The only one of the eight that handles time |
-| Quick near-term dates | `mini-calendar` component | Built for "picking dates close to today", which is most due dates |
+| Near-term dates | `mini-calendar` component | Built for "picking dates close to today", which is most due dates |
 | Notes | `textarea/labeled` pattern | |
 | Location | `input/standard` pattern | |
 | Save feedback | `sonner/promise` pattern | Replaces the plain success toast |
