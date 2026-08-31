@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { AddItemDialog } from '#/components/add-item-dialog'
 import { AppShell } from '#/components/app-shell'
+import { BulkAddDialog } from '#/components/bulk-add-dialog'
 import { CommandPalette } from '#/components/command-palette'
 import { Toaster } from '#/components/ui/sonner'
 import { fetchCurrentUser } from '#/server/auth'
@@ -24,6 +25,7 @@ function AppLayout() {
   // The add dialog is reachable from the nav and the palette, so its state
   // lives here rather than in either one.
   const [adding, setAdding] = useState(false)
+  const [bulkAdding, setBulkAdding] = useState(false)
 
   return (
     <>
@@ -32,7 +34,11 @@ function AppLayout() {
       </AppShell>
 
       <AddItemDialog open={adding} onOpenChange={setAdding} />
-      <CommandPalette onAddItem={() => setAdding(true)} />
+      <BulkAddDialog open={bulkAdding} onOpenChange={setBulkAdding} />
+      <CommandPalette
+        onAddItem={() => setAdding(true)}
+        onBulkAdd={() => setBulkAdding(true)}
+      />
       <Toaster position="top-center" />
     </>
   )

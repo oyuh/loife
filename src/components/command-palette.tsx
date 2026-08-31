@@ -1,5 +1,11 @@
 import { useNavigate } from '@tanstack/react-router'
-import { BookOpen, CalendarCheck, NotebookPen, Plus } from 'lucide-react'
+import {
+  BookOpen,
+  CalendarCheck,
+  ClipboardList,
+  NotebookPen,
+  Plus,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
   CommandDialog,
@@ -12,7 +18,13 @@ import {
 } from '#/components/ui/command'
 import { Kbd } from '#/components/ui/kbd'
 
-export function CommandPalette({ onAddItem }: { onAddItem: () => void }) {
+export function CommandPalette({
+  onAddItem,
+  onBulkAdd,
+}: {
+  onAddItem: () => void
+  onBulkAdd: () => void
+}) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -52,6 +64,10 @@ export function CommandPalette({ onAddItem }: { onAddItem: () => void }) {
             <CommandShortcut>
               <Kbd>A</Kbd>
             </CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => run(onBulkAdd)}>
+            <ClipboardList />
+            Bulk add from a syllabus
           </CommandItem>
         </CommandGroup>
 

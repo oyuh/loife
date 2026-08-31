@@ -19,7 +19,8 @@
     "db:studio": "drizzle-kit studio",
     "db:check": "node scripts/check-schema.mjs",
     "db:seed": "node --env-file=.env scripts/seed.mjs",
-    "check:dates": "node --experimental-strip-types scripts/check-dates.ts"
+    "check:dates": "node --experimental-strip-types scripts/check-dates.ts",
+    "check:syllabus": "node --experimental-strip-types scripts/check-syllabus.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -137,3 +137,27 @@ export const setItemDue = createServerFn({ method: 'POST' })
       .where(eq(items.id, data.id))
     void syncItem(data.id)
   })
+
+/**
+ * Bulk insert from a syllabus paste. Capped at 200, which is well past a
+ * semester and keeps one bad paste from writing thousands of rows.
+ */
+export const createItems = createServerFn({ method: 'POST' })
+  .validator(z.object({ items: z.array(createInput).min(1).max(200) }))
+  .handler(async ({ data }) => {
+    await requireUser()
+
+    const rows = await db
+      .insert(items)
+      .values(data.items)
+      .returning({ id: items.id })
+
+    // Serial rather than all at once, so a fifty item paste does not fire
+    // fifty simultaneous Google requests. Still not awaited, so the response
+    // does not wait on any of it.
+    void (async () => {
+      for (const row of rows) await syncItem(row.id)
+    })()
+
+    return { count: rows.length }
+  })
