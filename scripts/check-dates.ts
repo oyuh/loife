@@ -410,3 +410,38 @@ console.log('ok  undated work is deferred but still ranks by priority')
 
 assert.equal(DEFAULT_PRIORITY, 3)
 console.log('\nurgency score checks passed')
+
+// --- move targets --------------------------------------------------------
+
+const { moveTargetDate, MOVE_TARGETS } = await import(
+  '../src/lib/move-targets.ts'
+)
+
+const target = (label: string) =>
+  MOVE_TARGETS.find((t: { label: string }) => t.label === label) as (typeof MOVE_TARGETS)[number]
+
+// now is Tuesday 15 September 2026.
+assert.equal(now.getDay(), 2, 'fixture really is a Tuesday')
+
+assert.equal(calendarDaysBetween(now, moveTargetDate(target('Today'), now) as Date), 0)
+assert.equal(calendarDaysBetween(now, moveTargetDate(target('Tomorrow'), now) as Date), 1)
+assert.equal(calendarDaysBetween(now, moveTargetDate(target('Next week'), now) as Date), 7)
+assert.equal(moveTargetDate(target('No date'), now), null)
+console.log('ok  named move targets land the right number of days out')
+
+// The weekend means the coming Saturday, not a fixed offset.
+const weekend = moveTargetDate(target('This weekend'), now) as Date
+assert.equal(weekend.getDay(), 6, 'lands on a Saturday')
+assert.equal(calendarDaysBetween(now, weekend), 4, 'Tuesday to Saturday is four days')
+
+// Asked on a Saturday it means the next one, not today.
+const saturday = new Date('2026-09-19T12:00:00')
+assert.equal(saturday.getDay(), 6)
+assert.equal(calendarDaysBetween(saturday, moveTargetDate(target('This weekend'), saturday) as Date), 7)
+console.log('ok  the weekend is the coming Saturday, and never today')
+
+// Everything with a date is due at end of day, matching the add form.
+assert.equal((moveTargetDate(target('Tomorrow'), now) as Date).getHours(), 23)
+console.log('ok  moved items are due by end of day')
+
+console.log('\nmove target checks passed')
