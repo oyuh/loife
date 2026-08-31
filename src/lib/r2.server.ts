@@ -26,9 +26,17 @@ let client: S3Client | null = null
 function r2(): S3Client {
   if (client) return client
 
+  // R2_ENDPOINT is the local MinIO container. Unset everywhere else, so
+  // production reaches Cloudflare without a dev-only branch in the config.
+  // MinIO addresses buckets by path where R2 puts them in the hostname.
+  const endpoint = process.env.R2_ENDPOINT
+
   client = new S3Client({
     region: 'auto',
-    endpoint: `https://${requireEnv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com`,
+    endpoint:
+      endpoint ??
+      `https://${requireEnv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com`,
+    forcePathStyle: Boolean(endpoint),
     credentials: {
       accessKeyId: requireEnv('R2_ACCESS_KEY_ID'),
       secretAccessKey: requireEnv('R2_SECRET_ACCESS_KEY'),

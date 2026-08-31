@@ -1,0 +1,54 @@
+# Local development only. Nothing here is deployed.
+#
+# Railway runs the real Postgres and Cloudflare runs the real bucket, so this
+# exists to keep a dev session off both. Pointing DATABASE_URL at the Railway
+# instance means every experiment writes to the data you actually use, and a
+# test upload lands in the bucket that holds your homework.
+#
+# Driven by scripts/local.mjs, so use pnpm local:up rather than docker compose.
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: loife-db
+    environment:
+      POSTGRES_USER: loife
+      POSTGRES_PASSWORD: loife
+      POSTGRES_DB: loife
+    ports:
+      # 5433 on the host, because a Postgres already installed on this machine
+      # would be sitting on 5432 and the clash is a confusing one to debug.
+      - '5433:5432'
+    volumes:
+      - loife-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U loife -d loife']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # Stands in for Cloudflare R2, which is S3 underneath, so attachments work
+  # offline and a dev upload never reaches the real bucket.
+  s3:
+    image: minio/minio:latest
+    container_name: loife-s3
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: loife
+      MINIO_ROOT_PASSWORD: loifelocal
+      # The browser PUTs straight to this, same as it does to R2 in production.
+      MINIO_API_CORS_ALLOW_ORIGIN: 'http://localhost:3000'
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - loife-minio:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  loife-pgdata:
+  loife-minio:

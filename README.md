@@ -35,6 +35,7 @@ Your GitHub OAuth app needs its callback URL set to `http://localhost:3000/api/a
 | `pnpm start` | Run the built server |
 | `pnpm check` | Biome lint and format check |
 | `pnpm generate-routes` | Regenerate `routeTree.gen.ts` |
+| `pnpm local:up` | Start the local Docker stack, described below |
 
 ## Auth
 
@@ -69,21 +70,39 @@ Railway's `railway.json` pre-deploy command was the first approach and it never 
 
 This assumes one replica, which is the current setup. Running several would have them race to migrate on boot, so move this back to a single pre-deploy step before scaling up.
 
-## Local database
+## Local stack
 
-Start Postgres on port 5433, so it never collides with anything already on 5432:
-
-```bash
-docker run -d --name loife-pg -e POSTGRES_USER=loife -e POSTGRES_PASSWORD=loife -e POSTGRES_DB=loife -p 5433:5432 postgres:17-alpine
-```
-
-Then set `DATABASE_URL=postgresql://loife:loife@localhost:5433/loife` in `.env` and run:
+Docker runs Postgres and a MinIO container that stands in for Cloudflare R2:
 
 ```bash
-pnpm db:migrate && pnpm db:seed
+pnpm local:up
 ```
 
-`pnpm db:seed` fills three courses and ten items spread across overdue, today, this week, and later, so the Today view has every bucket to render. It refuses to run against any host other than localhost.
+That starts both containers, waits for their healthchecks, creates the bucket, and applies migrations. Then start the app against them:
+
+```bash
+pnpm local:dev
+```
+
+| Command | Does |
+|---|---|
+| `pnpm local:up` | Start the containers and migrate |
+| `pnpm local:dev` | Run the dev server against the containers |
+| `pnpm local:down` | Stop the containers, keeping the data |
+| `pnpm local:down --clean` | Stop them and drop the volumes |
+| `pnpm local:restart` | Down, then up |
+
+`local:dev` passes the container connection strings through the environment and never reads `.env`. Keep your Railway and Cloudflare credentials in `.env` for `pnpm dev`, and reach for `local:dev` when you want a session that cannot touch either.
+
+Postgres listens on 5433, because an installed Postgres already holds 5432. Browse the bucket at `http://localhost:9001` with `loife` / `loifelocal`.
+
+Fill the database with something to look at:
+
+```bash
+pnpm db:seed
+```
+
+That writes three courses and ten items spread across overdue, today, this week, and later, so the Today view has every bucket to render. It refuses to run against any host other than localhost.
 
 `TZ` belongs in `.env` too. Day boundaries come from the host timezone, so a machine on UTC files an 11pm assignment under tomorrow.
 
@@ -91,8 +110,10 @@ pnpm db:migrate && pnpm db:seed
 
 ```bash
 pnpm db:check       # migrations apply and constraints reject bad rows
-pnpm check:urgency  # Today view bucketing and ordering
+pnpm check:dates    # Today view bucketing, ordering, and grace periods
 pnpm check          # Biome lint and format
 ```
 
 `db:check` runs against an in-process Postgres, so it needs neither Docker nor a database.
+
+The other check scripts are `check:plan`, `check:search`, and `check:syllabus`. None of them need a database either.

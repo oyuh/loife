@@ -17,7 +17,12 @@ if (!url) {
 }
 
 // max: 1 because a migration runs its statements in order on one connection.
-const client = postgres(url, { max: 1 })
+const client = postgres(url, {
+  max: 1,
+  // Every re-run notices that the migrations table is already there and says
+  // so at length. Anything that actually went wrong arrives as an error.
+  onnotice: () => {},
+})
 
 try {
   await migrate(drizzle(client), { migrationsFolder: 'drizzle' })
