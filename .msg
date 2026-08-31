@@ -1,31 +1,28 @@
-Calendar reminders, a status panel, and edits that cannot go stale
+Detail sheet, an add form for anything, future journal days, nav reorder
 
-Events carried no reminders, so they inherited the default of a calendar
-created through the API, which is nothing. Each now sets its own:
+Tapping a Today row used to drop straight into a form. It now opens a detail
+sheet: the notes rendered, the files viewable, and the three things worth
+changing in a hurry, which are done, priority, and when. Edit is a button
+inside it rather than the only way in.
 
-  class meeting     10 minutes before
-  assignment        the morning before if all day, an hour if timed
-  exam              the same, plus a day earlier again
+The add form was assignment shaped and cluttered. It is Add anything now, with
+To do first, and the layout is name, kind, when, priority. Course, place,
+notes and files fold away, so the common case is four controls rather than
+nine.
 
-Google measures an all-day reminder from midnight at the start of the day, so
-900 minutes is 9am the morning before rather than fifteen hours before the
-deadline. Overrides stay inside the cap of five.
+Files can be attached while adding. An attachment row needs an item id, which
+a new item does not have yet, so the files are held and uploaded once the save
+returns one.
 
-Updates use PUT rather than PATCH. PATCH merges, so anything the body omitted
-kept its old value: clearing a location, dropping a note, or turning a weekly
-class into a single session would have left the stale version on the calendar.
-A full replace makes the event equal what was computed, by construction. Six
-tests cover the edits that would have gone stale, including a dropped weekly
-pattern, which must send an empty recurrence rather than omitting the field.
+The journal takes any date, ahead or behind, not only days that already exist.
+A chosen day opens ready to type and is labelled Planned when it is in the
+future.
 
-server/calendar.ts split in two. Importing the status server function from a
-component made the module client reachable, and its plain syncItem and
-syncCourse exports kept the Google client alive all the way into the browser
-bundle. The build caught it. Only createServerFn wrappers stay in calendar.ts,
-with the rest in calendar.server.ts.
+Nav is Today, Search, Journal, Add, with Today on the left at twice the width.
+Courses moved into the palette, since a term's classes are set up once and then
+rarely touched.
 
-CalendarStatus on the Courses page shows whether the grant exists and offers a
-manual push, since sync failures are logged rather than thrown and were
-therefore invisible.
-
-Course pickers show the name beside the code.
+Two fixes in the new code. A label wrapping a Radix Select associates with
+nothing, because the trigger is a button, so the trigger carries its own name.
+And staged files key on name, size and modified time, since two files can share
+a name and a position shifts when one is removed.

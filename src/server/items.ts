@@ -191,3 +191,20 @@ export const deleteItem = createServerFn({ method: 'POST' })
       .returning({ googleEventId: items.googleEventId })
     if (row?.googleEventId) void removeItemEvent(row.googleEventId)
   })
+
+/** Backs the priority control in the detail sheet, without a full form. */
+export const updateItemPriority = createServerFn({ method: 'POST' })
+  .validator(
+    z.object({
+      id: z.number().int().positive(),
+      priority: z.number().int().min(1).max(5),
+    }),
+  )
+  .handler(async ({ data }) => {
+    await requireUser()
+    await db
+      .update(items)
+      .set({ priority: data.priority })
+      .where(eq(items.id, data.id))
+    void syncItem(data.id)
+  })

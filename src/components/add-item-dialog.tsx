@@ -1,29 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, ChevronDown } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
-import { AttachmentsPanel } from '#/components/attachments-panel'
-import {
-  Choicebox,
-  ChoiceboxIndicator,
-  ChoiceboxItem,
-  ChoiceboxItemHeader,
-  ChoiceboxItemTitle,
-} from '#/components/kibo-ui/choicebox'
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxTrigger,
-} from '#/components/kibo-ui/combobox'
+import { AttachmentsList, attachmentsKey } from '#/components/attachments-list'
 import { MarkdownField } from '#/components/markdown-field'
+import { StagedFiles } from '#/components/staged-files'
 import { Button } from '#/components/ui/button'
 import { Calendar } from '#/components/ui/calendar'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '#/components/ui/collapsible'
 import {
   Dialog,
   DialogContent,
@@ -40,13 +29,21 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '#/components/ui/drawer'
-import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
+import { Field, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '#/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { toDueFields, toDueValue } from '#/lib/due-date'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
 import {
@@ -56,31 +53,20 @@ import {
 } from '#/lib/urgency'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { cn } from '#/lib/utils'
-import {
-  createItem,
-  deleteItem,
-  type ItemRow,
-  updateItem,
-} from '#/server/items'
+import { recordUpload, requestUpload } from '#/server/attachments'
+import { createItem, type ItemRow, updateItem } from '#/server/items'
 
 const TYPES = [
+  { value: 'task', label: 'To do' },
   { value: 'assignment', label: 'Assignment' },
-  { value: 'exam', label: 'Exam' },
-  { value: 'task', label: 'Task' },
   { value: 'reading', label: 'Reading' },
+  { value: 'exam', label: 'Exam' },
 ] as const
-
-/** 1 is most urgent through 5 is least, blended with the due date when sorting. */
-const PRIORITIES = PRIORITY_LEVELS.map((level) => ({
-  value: String(level),
-  label: `P${level}`,
-  hint: PRIORITY_LABELS[level],
-}))
 
 const EMPTY = {
   name: '',
-  courseId: '',
-  type: 'assignment',
+  courseId: 'none',
+  type: 'task',
   date: '',
   time: '',
   priority: String(DEFAULT_PRIORITY),
@@ -95,14 +81,17 @@ export function AddItemDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** Present when editing an existing assignment, absent when adding. */
+  /** Present when editing, absent when adding. */
   item?: ItemRow | null
 }) {
   const [form, setForm] = useState(EMPTY)
+  const [staged, setStaged] = useState<File[]>([])
+  const queryClient = useQueryClient()
+  const isDesktop = useMediaQuery('(min-width: 640px)')
 
-  // Reopening on a different assignment has to reload the fields.
   useEffect(() => {
     if (!open) return
+    setStaged([])
     if (!item) {
       setForm(EMPTY)
       return
@@ -110,7 +99,7 @@ export function AddItemDialog({
     const due = toDueFields({ dueAt: item.dueAt, allDay: item.allDay })
     setForm({
       name: item.name,
-      courseId: item.course ? String(item.course.id) : '',
+      courseId: item.course ? String(item.course.id) : 'none',
       type: item.type,
       date: due.date,
       time: due.time,
@@ -119,15 +108,13 @@ export function AddItemDialog({
       notes: item.notes ?? '',
     })
   }, [open, item])
-  const queryClient = useQueryClient()
-  const isDesktop = useMediaQuery('(min-width: 640px)')
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const { dueAt, allDay } = toDueValue({ date: form.date, time: form.time })
       const payload = {
         name: form.name,
-        courseId: form.courseId ? Number(form.courseId) : null,
+        courseId: form.courseId !== 'none' ? Number(form.courseId) : null,
         type: form.type as (typeof TYPES)[number]['value'],
         dueAt,
         allDay,
@@ -135,14 +122,46 @@ export function AddItemDialog({
         location: form.location,
         notes: form.notes,
       }
-      return item
-        ? updateItem({ data: { ...payload, id: item.id } })
-        : createItem({ data: payload })
+
+      const saved = item
+        ? await updateItem({ data: { ...payload, id: item.id } })
+        : await createItem({ data: payload })
+
+      // Staged files wait for an id, which only exists once the row is saved.
+      for (const file of staged) {
+        const contentType = file.type || 'application/octet-stream'
+        const { key, url } = await requestUpload({
+          data: { filename: file.name, contentType, size: file.size },
+        })
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': contentType },
+          body: file,
+        })
+        if (!response.ok)
+          throw new Error(`Upload failed with ${response.status}`)
+        await recordUpload({
+          data: {
+            itemId: saved.id,
+            logEntryId: null,
+            key,
+            filename: file.name,
+            contentType,
+            size: file.size,
+          },
+        })
+      }
+
+      return saved
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey })
+      queryClient.invalidateQueries({
+        queryKey: attachmentsKey({ itemId: saved.id }),
+      })
       toast.success(item ? 'Saved' : `Added ${form.name.trim()}`)
       setForm(EMPTY)
+      setStaged([])
       onOpenChange(false)
     },
     onError: (error) =>
@@ -155,57 +174,36 @@ export function AddItemDialog({
     if (!save.isPending) onOpenChange(next)
   }
 
-  const remove = useMutation({
-    mutationFn: () => deleteItem({ data: { id: item?.id as number } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemsQuery.queryKey })
-      toast.success('Deleted')
-      onOpenChange(false)
-    },
-    onError: () => toast.error('Could not delete that'),
-  })
+  const title = item ? 'Edit' : 'Add anything'
+  const description = item
+    ? 'Changes reach your calendar straight away.'
+    : 'A to do, an assignment, a reading, an exam. Only the name is required.'
 
-  const title = item ? 'Edit assignment' : 'Add assignment'
-  const description = 'Leave the time empty for anything due by end of day.'
   const body = (
-    <>
-      <AddItemForm form={form} onChange={setForm} onSubmit={save.mutate} />
-      {item && (
-        <div className="space-y-2 pt-2">
-          <p className="font-medium text-sm">Attachments</p>
-          <AttachmentsPanel itemId={item.id} />
-        </div>
-      )}
-    </>
-  )
-  const submit = (
-    <>
-      {item && (
-        <Button
-          className="min-h-11 mr-auto"
-          disabled={remove.isPending || save.isPending}
-          onClick={() => remove.mutate()}
-          type="button"
-          variant="ghost"
-        >
-          Delete
-        </Button>
-      )}
-      <Button
-        className="min-h-11 w-full sm:w-auto"
-        disabled={save.isPending || !form.name.trim()}
-        form="add-item"
-        type="submit"
-      >
-        {save.isPending ? 'Saving…' : item ? 'Save' : 'Add'}
-      </Button>
-    </>
+    <ItemForm
+      form={form}
+      item={item ?? null}
+      onChange={setForm}
+      onStagedChange={setStaged}
+      onSubmit={save.mutate}
+      staged={staged}
+    />
   )
 
-  // A bottom sheet beats a centred dialog once the mobile keyboard is up.
+  const submit = (
+    <Button
+      className="min-h-11 w-full sm:w-auto"
+      disabled={save.isPending || !form.name.trim()}
+      form="item-form"
+      type="submit"
+    >
+      {save.isPending ? 'Saving…' : item ? 'Save' : 'Add'}
+    </Button>
+  )
+
   if (!isDesktop) {
     return (
-      <Drawer open={open} onOpenChange={close}>
+      <Drawer onOpenChange={close} open={open}>
         <DrawerContent className="max-h-[92dvh]">
           <DrawerHeader className="text-left">
             <DrawerTitle>{title}</DrawerTitle>
@@ -219,7 +217,7 @@ export function AddItemDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={close}>
+    <Dialog onOpenChange={close} open={open}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -232,214 +230,211 @@ export function AddItemDialog({
   )
 }
 
-function AddItemForm({
+/**
+ * Name, then when, then what kind. Everything optional is folded away, so the
+ * common case is three controls rather than nine.
+ */
+function ItemForm({
   form,
+  item,
+  staged,
   onChange,
+  onStagedChange,
   onSubmit,
 }: {
   form: typeof EMPTY
+  item: ItemRow | null
+  staged: File[]
   onChange: (next: typeof EMPTY) => void
+  onStagedChange: (files: File[]) => void
   onSubmit: () => void
 }) {
   const nameId = useId()
   const locationId = useId()
   const notesId = useId()
+  const [showMore, setShowMore] = useState(false)
   const { data: courses = [] } = useQuery(coursesQuery)
 
   const set = <K extends keyof typeof EMPTY>(key: K, value: string) =>
     onChange({ ...form, [key]: value })
 
-  const courseData = [
-    { value: '', label: 'No course' },
-    ...courses.map((course) => ({
-      value: String(course.id),
-      label: course.code ? `${course.code} · ${course.name}` : course.name,
-    })),
-  ]
-
   const due = form.date ? new Date(`${form.date}T00:00:00`) : undefined
 
   return (
     <form
-      className="pb-2"
-      id="add-item"
+      className="space-y-5 pb-2"
+      id="item-form"
       onSubmit={(event) => {
         event.preventDefault()
         onSubmit()
       }}
     >
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor={nameId}>Name</FieldLabel>
-          <Input
-            className="h-11"
-            id={nameId}
-            maxLength={200}
-            onChange={(e) => set('name', e.target.value)}
-            placeholder="Problem set 7"
-            required
-            value={form.name}
-          />
-        </Field>
+      <Field>
+        <FieldLabel htmlFor={nameId}>What is it</FieldLabel>
+        <Input
+          className="h-12 text-base"
+          id={nameId}
+          maxLength={200}
+          onChange={(event) => set('name', event.target.value)}
+          placeholder="Renew parking permit"
+          required
+          value={form.name}
+        />
+      </Field>
 
-        <Field>
-          <FieldLabel>Course</FieldLabel>
-          <Combobox
-            data={courseData}
-            onValueChange={(value) => set('courseId', value)}
-            type="course"
-            value={form.courseId}
-          >
-            <ComboboxTrigger className="h-11 w-full" />
-            <ComboboxContent>
-              <ComboboxInput placeholder="Search courses…" />
-              <ComboboxList>
-                <ComboboxEmpty>No course matches that.</ComboboxEmpty>
-                <ComboboxGroup>
-                  {courseData.map((course) => (
-                    <ComboboxItem key={course.value} value={course.value}>
-                      {course.label}
-                    </ComboboxItem>
-                  ))}
-                </ComboboxGroup>
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
-        </Field>
+      <Field>
+        <FieldLabel>Kind</FieldLabel>
+        <ToggleGroup
+          className="w-full"
+          onValueChange={(value: string) => value && set('type', value)}
+          type="single"
+          value={form.type}
+          variant="outline"
+        >
+          {TYPES.map((option) => (
+            <ToggleGroupItem
+              className="min-h-11 flex-1"
+              key={option.value}
+              value={option.value}
+            >
+              {option.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </Field>
 
-        <Field>
-          <FieldLabel>Type</FieldLabel>
-          <Choicebox
-            className="grid grid-cols-2 gap-2"
-            onValueChange={(value) => set('type', value)}
-            value={form.type}
-          >
-            {TYPES.map((option) => (
-              <ChoiceboxItem
-                id={`type-${option.value}`}
-                key={option.value}
-                value={option.value}
-              >
-                <ChoiceboxItemHeader>
-                  <ChoiceboxItemTitle>{option.label}</ChoiceboxItemTitle>
-                </ChoiceboxItemHeader>
-                <ChoiceboxIndicator />
-              </ChoiceboxItem>
-            ))}
-          </Choicebox>
-        </Field>
-
-        <Field>
-          <FieldLabel>Due</FieldLabel>
+      <Field>
+        <FieldLabel>When</FieldLabel>
+        <div className="flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 className={cn(
-                  'h-11 w-full justify-start text-left font-normal',
+                  'h-11 min-w-0 flex-1 justify-start font-normal',
                   !form.date && 'text-muted-foreground',
                 )}
                 type="button"
                 variant="outline"
               >
-                <CalendarIcon className="mr-2 size-4" />
-                {due
-                  ? `${format(due, 'PPP')}${form.time ? ` at ${form.time}` : ''}`
-                  : 'No due date'}
+                <CalendarIcon className="mr-2 size-4 shrink-0" />
+                <span className="truncate">
+                  {due ? format(due, 'EEE d MMM') : 'No due date'}
+                </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0">
-              <div className="divide-y overflow-hidden bg-background">
-                <Calendar
-                  mode="single"
-                  onSelect={(next) =>
-                    set(
-                      'date',
-                      next
-                        ? toDueFields({ dueAt: next, allDay: true }).date
-                        : '',
-                    )
-                  }
-                  selected={due}
-                />
-                <div className="space-y-2 p-4">
-                  <FieldLabel htmlFor="due-time">
-                    Time
-                    <span className="ml-1 font-normal text-muted-foreground">
-                      optional
-                    </span>
-                  </FieldLabel>
-                  <Input
-                    className="h-11 w-full"
-                    id="due-time"
-                    onChange={(e) => set('time', e.target.value)}
-                    type="time"
-                    value={form.time}
-                  />
-                </div>
-              </div>
+              <Calendar
+                mode="single"
+                onSelect={(next) =>
+                  set(
+                    'date',
+                    next ? toDueFields({ dueAt: next, allDay: true }).date : '',
+                  )
+                }
+                selected={due}
+              />
             </PopoverContent>
           </Popover>
-        </Field>
 
-        <Field>
-          <FieldLabel>Priority</FieldLabel>
-          <Choicebox
-            className="grid grid-cols-5 gap-2"
-            onValueChange={(value) => set('priority', value)}
-            value={form.priority}
-          >
-            {PRIORITIES.map((option) => (
-              <ChoiceboxItem
-                id={`priority-${option.value}`}
-                key={option.value}
-                value={option.value}
-              >
-                <ChoiceboxItemHeader>
-                  <ChoiceboxItemTitle title={option.hint}>
-                    {option.label}
-                  </ChoiceboxItemTitle>
-                </ChoiceboxItemHeader>
-              </ChoiceboxItem>
-            ))}
-          </Choicebox>
-          <p className="text-muted-foreground text-xs">
-            {PRIORITY_LABELS[Number(form.priority)]}. Blended with the due date,
-            so a P1 next week can outrank a P5 tomorrow.
-          </p>
-        </Field>
-
-        <Field className="min-w-0">
-          <FieldLabel htmlFor={locationId}>
-            Location
-            <span className="ml-1 font-normal text-muted-foreground">
-              optional
-            </span>
-          </FieldLabel>
           <Input
-            className="h-11"
-            id={locationId}
-            maxLength={200}
-            onChange={(e) => set('location', e.target.value)}
-            placeholder="ECSS 2.410"
-            value={form.location}
+            aria-label="Time, optional"
+            className="h-11 w-28 shrink-0"
+            onChange={(event) => set('time', event.target.value)}
+            type="time"
+            value={form.time}
           />
-        </Field>
+        </div>
+      </Field>
 
-        <Field>
-          <FieldLabel htmlFor={notesId}>
-            Notes
-            <span className="ml-1 font-normal text-muted-foreground">
-              optional
-            </span>
-          </FieldLabel>
-          <MarkdownField
-            id={notesId}
-            onChange={(value) => set('notes', value)}
-            rows={4}
-            value={form.notes}
+      <Field>
+        <FieldLabel>Priority</FieldLabel>
+        <ToggleGroup
+          className="w-full"
+          onValueChange={(value: string) => value && set('priority', value)}
+          type="single"
+          value={form.priority}
+          variant="outline"
+        >
+          {PRIORITY_LEVELS.map((level) => (
+            <ToggleGroupItem
+              className="min-h-11 flex-1"
+              key={level}
+              title={PRIORITY_LABELS[level]}
+              value={String(level)}
+            >
+              P{level}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <p className="text-muted-foreground text-xs">
+          {PRIORITY_LABELS[Number(form.priority)]}
+        </p>
+      </Field>
+
+      <Collapsible onOpenChange={setShowMore} open={showMore}>
+        <CollapsibleTrigger className="flex min-h-11 w-full items-center gap-2 text-muted-foreground text-sm">
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              'size-4 transition-transform',
+              showMore && 'rotate-180',
+            )}
           />
-        </Field>
-      </FieldGroup>
+          Course, place, notes, files
+        </CollapsibleTrigger>
+
+        <CollapsibleContent className="space-y-5 pt-4">
+          <Field>
+            <FieldLabel>Course</FieldLabel>
+            <Select
+              onValueChange={(value) => set('courseId', value)}
+              value={form.courseId}
+            >
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No course</SelectItem>
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={String(course.id)}>
+                    {course.code
+                      ? `${course.code} · ${course.name}`
+                      : course.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor={locationId}>Place</FieldLabel>
+            <Input
+              className="h-11"
+              id={locationId}
+              maxLength={200}
+              onChange={(event) => set('location', event.target.value)}
+              placeholder="ECSS 2.410"
+              value={form.location}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor={notesId}>Notes</FieldLabel>
+            <MarkdownField
+              id={notesId}
+              onChange={(value) => set('notes', value)}
+              rows={4}
+              value={form.notes}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel>Files</FieldLabel>
+            {item && <AttachmentsList owner={{ itemId: item.id }} />}
+            <StagedFiles files={staged} onChange={onStagedChange} />
+          </Field>
+        </CollapsibleContent>
+      </Collapsible>
     </form>
   )
 }

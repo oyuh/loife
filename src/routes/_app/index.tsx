@@ -8,8 +8,8 @@ import { CalendarCheck, ChevronRight, Paperclip } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AddItemDialog } from '#/components/add-item-dialog'
-import { AttachmentsList } from '#/components/attachments-list'
 import { InlineLog } from '#/components/inline-log'
+import { ItemDetail } from '#/components/item-detail'
 import { RowContextMenu, RowMenuButton } from '#/components/item-row-actions'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
 import { SwipeRow } from '#/components/swipe-row'
@@ -30,12 +30,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '#/components/ui/collapsible'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '#/components/ui/dialog'
 import {
   Empty,
   EmptyDescription,
@@ -66,6 +60,7 @@ import {
   type ItemRow,
   setItemDue,
   setItemStatus,
+  updateItemPriority,
 } from '#/server/items'
 
 export const Route = createFileRoute('/_app/')({
@@ -101,7 +96,7 @@ function Today() {
     () => new Set(['week', 'later', 'someday']),
   )
   const [confirming, setConfirming] = useState<ItemRow | null>(null)
-  const [showingFiles, setShowingFiles] = useState<ItemRow | null>(null)
+  const [viewing, setViewing] = useState<ItemRow | null>(null)
 
   const toggleSection = (bucket: string) =>
     setCollapsed((previous) => {
@@ -154,6 +149,14 @@ function Today() {
       setItemDue({ data: { ...vars, allDay: true } }),
     onMutate: (vars) => patchRow(vars.id, { dueAt: vars.dueAt, allDay: true }),
     onError: rollback('Could not move that, so it is back how it was.'),
+    onSettled: settle,
+  })
+
+  const setPriority = useMutation({
+    mutationFn: (vars: { id: number; priority: number }) =>
+      updateItemPriority({ data: vars }),
+    onMutate: (vars) => patchRow(vars.id, { priority: vars.priority }),
+    onError: rollback('Could not change that, so it is back how it was.'),
     onSettled: settle,
   })
 
@@ -293,7 +296,7 @@ function Today() {
                             <button
                               aria-label={`Open ${item.name}`}
                               className="flex min-w-0 flex-1 select-none text-left"
-                              onClick={() => setEditing(item)}
+                              onClick={() => setViewing(item)}
                               type="button"
                             >
                               <ItemContent className="gap-0.5">
@@ -329,7 +332,7 @@ function Today() {
                               <Button
                                 aria-label={`Files on ${item.name}`}
                                 className="min-h-10 shrink-0 gap-1 px-2 text-muted-foreground text-xs"
-                                onClick={() => setShowingFiles(item)}
+                                onClick={() => setViewing(item)}
                                 size="sm"
                                 type="button"
                                 variant="ghost"
@@ -401,23 +404,37 @@ function Today() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog
-        onOpenChange={(open) => {
-          if (!open) setShowingFiles(null)
+      <ItemDetail
+        item={viewing}
+        onDelete={() => {
+          setConfirming(viewing)
+          setViewing(null)
         }}
-        open={showingFiles !== null}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="truncate pr-8">
-              {showingFiles?.name}
-            </DialogTitle>
-          </DialogHeader>
-          {showingFiles && (
-            <AttachmentsList owner={{ itemId: showingFiles.id }} />
-          )}
-        </DialogContent>
-      </Dialog>
+        onEdit={() => {
+          setEditing(viewing)
+          setViewing(null)
+        }}
+        onMove={(target) => {
+          if (!viewing) return
+          move.mutate({ id: viewing.id, dueAt: moveTargetDate(target) })
+          toast.success(`Moved to ${target.label.toLowerCase()}`)
+          setViewing(null)
+        }}
+        onOpenChange={(open) => {
+          if (!open) setViewing(null)
+        }}
+        onPriority={(priority) => {
+          if (viewing) setPriority.mutate({ id: viewing.id, priority })
+        }}
+        onToggle={() => {
+          if (!viewing) return
+          toggle.mutate({
+            id: viewing.id,
+            status: viewing.status === 'done' ? 'todo' : 'done',
+          })
+          setViewing(null)
+        }}
+      />
 
       <AddItemDialog
         item={editing}

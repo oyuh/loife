@@ -5,12 +5,13 @@ import {
 } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Check, PencilLine } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AttachmentsList } from '#/components/attachments-list'
 import { AttachmentsPanel } from '#/components/attachments-panel'
 import { Pill } from '#/components/kibo-ui/pill'
 import { Markdown } from '#/components/markdown'
 import { Button } from '#/components/ui/button'
+import { Field, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { localDateString } from '#/lib/calendar-event'
@@ -67,6 +68,25 @@ function useJournal() {
 
 function Journal() {
   const { days, today } = useJournal()
+  const [extraDate, setExtraDate] = useState('')
+
+  // A day picked here is prepended so it can be written into before it exists,
+  // which is what makes planning ahead possible rather than only looking back.
+  const shown = useMemo(() => {
+    if (!extraDate || days.some((day) => day.date === extraDate)) return days
+    const placeholder = {
+      id: -2,
+      date: extraDate,
+      kind: 'journal' as const,
+      title: null,
+      body: null,
+      courseId: null,
+      location: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    return [...days, placeholder].sort((a, b) => b.date.localeCompare(a.date))
+  }, [days, extraDate])
 
   let lastMonth = ''
 
@@ -75,12 +95,35 @@ function Journal() {
       <header className="mb-8">
         <h1 className="font-semibold text-2xl tracking-tight">Journal</h1>
         <p className="mt-1 text-muted-foreground text-sm">
-          A page per day. Today is at the top and always ready to write in.
+          A page per day. Today is always ready to write in, and you can pick
+          any other date, ahead or behind.
         </p>
       </header>
 
+      <div className="mb-8 flex flex-wrap items-end gap-2">
+        <Field className="min-w-0 flex-1">
+          <FieldLabel htmlFor="journal-jump">Write on another day</FieldLabel>
+          <Input
+            className="h-11"
+            id="journal-jump"
+            onChange={(event) => setExtraDate(event.target.value)}
+            type="date"
+            value={extraDate}
+          />
+        </Field>
+        {extraDate && (
+          <Button
+            className="min-h-11"
+            onClick={() => setExtraDate('')}
+            variant="ghost"
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+
       <div className="space-y-10">
-        {days.map((day) => {
+        {shown.map((day) => {
           const month = monthFormat.format(asDate(day.date))
           const showMonth = month !== lastMonth
           lastMonth = month
@@ -92,7 +135,11 @@ function Journal() {
                   {month}
                 </p>
               )}
-              <DayEntry day={day} isToday={day.date === today} />
+              <DayEntry
+                day={day}
+                isToday={day.date === today}
+                todayIso={today}
+              />
             </div>
           )
         })}
@@ -101,9 +148,19 @@ function Journal() {
   )
 }
 
-function DayEntry({ day, isToday }: { day: Day; isToday: boolean }) {
+function DayEntry({
+  day,
+  isToday,
+  todayIso,
+}: {
+  day: Day
+  isToday: boolean
+  todayIso: string
+}) {
   const queryClient = useQueryClient()
-  const [editing, setEditing] = useState(isToday && !day.body)
+  const [editing, setEditing] = useState(
+    (isToday || day.id === -2) && !day.body,
+  )
   const [title, setTitle] = useState(day.title ?? '')
   const [body, setBody] = useState(day.body ?? '')
 
@@ -145,7 +202,8 @@ function DayEntry({ day, isToday }: { day: Day; isToday: boolean }) {
           ) : (
             <>
               <h2 className="font-medium">
-                {day.title ?? (isToday ? 'Today' : '')}
+                {day.title ??
+                  (isToday ? 'Today' : day.date > todayIso ? 'Planned' : '')}
               </h2>
               {day.kind === 'event' && <Pill>Event</Pill>}
               <Button
