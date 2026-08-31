@@ -22,6 +22,7 @@ import { InlineLog } from '#/components/inline-log'
 import { ItemDetail } from '#/components/item-detail'
 import { RowContextMenu, RowMenuButton } from '#/components/item-row-actions'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
+import { StudyTimer } from '#/components/study-timer'
 import { SwipeAction, SwipeRow } from '#/components/swipe-row'
 import {
   AlertDialog,
@@ -214,6 +215,8 @@ function Today() {
           {late > 0 && <span className="text-destructive">{late} overdue</span>}
         </p>
       </header>
+
+      <StudyTimer />
 
       <DayPlan items={items} />
 

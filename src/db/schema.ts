@@ -87,6 +87,9 @@ export const items = pgTable('items', {
   // How long it actually took, recorded on completion. Kept separate so the
   // estimate stays honest rather than being overwritten by the outcome.
   actualMinutes: smallint('actual_minutes'),
+  // Total preparation this needs before the due date, as opposed to how long
+  // the thing itself takes. An exam is two hours; revising for it is ten.
+  studyMinutes: smallint('study_minutes'),
   location: text('location'),
   notes: text('notes'),
   googleEventId: text('google_event_id'),
@@ -141,6 +144,29 @@ export const itemEvents = pgTable('item_events', {
   at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * A stretch of time actually spent preparing.
+ *
+ * Separate from the item so a single exam can accumulate many sessions, and so
+ * study that belongs to no particular item still has somewhere to go.
+ */
+export const studySessions = pgTable('study_sessions', {
+  id: serial('id').primaryKey(),
+  itemId: integer('item_id').references(() => items.id, {
+    onDelete: 'cascade',
+  }),
+  /** What it was for, when it belongs to no item. */
+  subject: text('subject'),
+  plannedMinutes: smallint('planned_minutes'),
+  startedAt: timestamp('started_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  /** Null while a session is still running. */
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  /** Written when the session ends, so history does not recompute it. */
+  actualMinutes: smallint('actual_minutes'),
+})
+
 export const attachments = pgTable(
   'attachments',
   {
@@ -180,6 +206,7 @@ export type NewItem = typeof items.$inferInsert
 export type LogEntry = typeof logEntries.$inferSelect
 export type NewLogEntry = typeof logEntries.$inferInsert
 export type ItemEvent = typeof itemEvents.$inferSelect
+export type StudySession = typeof studySessions.$inferSelect
 export type Attachment = typeof attachments.$inferSelect
 export type NewAttachment = typeof attachments.$inferInsert
 

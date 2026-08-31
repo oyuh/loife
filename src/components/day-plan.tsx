@@ -11,6 +11,7 @@ import { coursesQuery } from '#/lib/queries'
 import { calendarStatus } from '#/server/calendar'
 import type { CourseRow } from '#/server/courses'
 import type { ItemRow } from '#/server/items'
+import { studiedByItem } from '#/server/study'
 
 const clock = new Intl.DateTimeFormat(undefined, {
   hour: 'numeric',
@@ -62,6 +63,10 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
     queryKey: ['calendar-status'],
     queryFn: () => calendarStatus(),
   })
+  const { data: studied = {} } = useQuery({
+    queryKey: ['studied-by-item'],
+    queryFn: () => studiedByItem(),
+  })
 
   const plan = useMemo(() => {
     const now = new Date()
@@ -75,10 +80,14 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
       dayEnd: (prefs?.dayEnd ?? '22:00').slice(0, 5),
       breakMinutes: prefs?.breakMinutes ?? 10,
       busy,
-      items,
+      // Preparation already done comes off what today asks for.
+      items: items.map((item) => ({
+        ...item,
+        studiedMinutes: studied[item.id] ?? 0,
+      })),
       now,
     })
-  }, [courses, items, prefs])
+  }, [courses, items, prefs, studied])
 
   const needEstimates = plan.unplaced.filter((u) => u.reason === 'no estimate')
   const noRoom = plan.unplaced.filter((u) => u.reason === 'no room')
@@ -115,6 +124,9 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
                   {clock.format(block.start)} – {clock.format(block.end)}
                 </span>
                 <span className="min-w-0 flex-1 truncate">
+                  {block.kind === 'study' && (
+                    <span className="text-primary">Study · </span>
+                  )}
                   {block.item.name}
                 </span>
                 <span className="shrink-0 text-muted-foreground text-xs">

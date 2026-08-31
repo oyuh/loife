@@ -23,6 +23,7 @@ export interface ItemRow {
   completedAt: Date | null
   estimatedMinutes: number | null
   actualMinutes: number | null
+  studyMinutes: number | null
   attachmentCount: number
   course: {
     id: number
@@ -55,6 +56,7 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
         completedAt: items.completedAt,
         estimatedMinutes: items.estimatedMinutes,
         actualMinutes: items.actualMinutes,
+        studyMinutes: items.studyMinutes,
         courseId: courses.id,
         courseName: courses.name,
         courseCode: courses.code,
@@ -141,6 +143,7 @@ const createInput = z.object({
   location: z.string().max(200).nullable().transform(emptyToNull),
   notes: z.string().max(2000).nullable().transform(emptyToNull),
   estimatedMinutes: minutesField.default(null),
+  studyMinutes: minutesField.default(null),
 })
 
 export const createItem = createServerFn({ method: 'POST' })

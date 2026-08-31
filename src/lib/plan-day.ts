@@ -21,6 +21,10 @@ export interface Plannable {
   name: string
   /** Minutes. Anything without one cannot be scheduled. */
   estimatedMinutes: number | null
+  /** Total preparation needed before the due date, spread over the days left. */
+  studyMinutes?: number | null
+  /** Minutes of that already done, summed from finished sessions. */
+  studiedMinutes?: number
   /** 1 is most urgent through 5 is least. */
   priority: number
   dueAt: Date | null
@@ -36,6 +40,44 @@ export interface Block {
   start: Date
   end: Date
   item: Plannable
+  /** Preparing for it, as opposed to doing it. */
+  kind: 'work' | 'study'
+}
+
+/** Nobody revises for something a month out, so study starts inside this. */
+export const STUDY_LEAD_DAYS = 14
+
+/** A study block shorter than this is not worth sitting down for. */
+export const MIN_STUDY_BLOCK = 15
+
+/**
+ * How much preparation this deserves today.
+ *
+ * The remaining time is spread evenly across the days left, today included, so
+ * falling behind raises tomorrow's share rather than silently vanishing. It
+ * stays at zero until the due date is inside the lead window, because
+ * scheduling revision a month early is noise rather than help.
+ */
+export function studyShareToday(item: Plannable, now: Date): number {
+  const total = item.studyMinutes ?? 0
+  if (total <= 0 || !item.dueAt || item.status === 'done') return 0
+
+  const remaining = total - (item.studiedMinutes ?? 0)
+  if (remaining <= 0) return 0
+
+  const midnight = new Date(now)
+  midnight.setHours(0, 0, 0, 0)
+  const dueDay = new Date(item.dueAt)
+  dueDay.setHours(0, 0, 0, 0)
+
+  const daysLeft = Math.round((+dueDay - +midnight) / 86_400_000)
+  // Past its due date there is nothing left to prepare for.
+  if (daysLeft < 0) return 0
+  if (daysLeft > STUDY_LEAD_DAYS) return 0
+
+  // Today counts, so a deadline today gets the whole remainder.
+  const share = Math.ceil(remaining / (daysLeft + 1))
+  return share < MIN_STUDY_BLOCK ? Math.min(remaining, MIN_STUDY_BLOCK) : share
 }
 
 export interface Plan {
@@ -150,17 +192,27 @@ export function planDay(input: {
   const blocks: Block[] = []
   const unplaced: Plan['unplaced'] = []
 
+  /** What each candidate wants today, and why. */
+  const wants: { item: Plannable; minutes: number; kind: 'work' | 'study' }[] =
+    []
+
+  for (const item of candidates) {
+    const study = studyShareToday(item, now)
+    if (study > 0) wants.push({ item, minutes: study, kind: 'study' })
+
+    if (item.estimatedMinutes && item.estimatedMinutes > 0) {
+      wants.push({ item, minutes: item.estimatedMinutes, kind: 'work' })
+    } else if (study === 0) {
+      unplaced.push({ item, reason: 'no estimate' })
+    }
+  }
+
   // Each window keeps its own cursor, so a task that does not fit the current
   // gap can still land in a later one rather than blocking everything behind it.
   const cursors = windows.map((w) => new Date(w.start))
 
-  for (const item of candidates) {
-    if (!item.estimatedMinutes || item.estimatedMinutes <= 0) {
-      unplaced.push({ item, reason: 'no estimate' })
-      continue
-    }
-
-    const needed = item.estimatedMinutes * MINUTE
+  for (const want of wants) {
+    const needed = want.minutes * MINUTE
     let placed = false
 
     for (let i = 0; i < windows.length; i++) {
@@ -169,7 +221,7 @@ export function planDay(input: {
 
       const start = new Date(cursors[i])
       const end = new Date(+start + needed)
-      blocks.push({ start, end, item })
+      blocks.push({ start, end, item: want.item, kind: want.kind })
 
       // A break after each block, unless it would spill past the window.
       const next = +end + input.breakMinutes * MINUTE
@@ -178,7 +230,7 @@ export function planDay(input: {
       break
     }
 
-    if (!placed) unplaced.push({ item, reason: 'no room' })
+    if (!placed) unplaced.push({ item: want.item, reason: 'no room' })
   }
 
   blocks.sort((a, b) => +a.start - +b.start)

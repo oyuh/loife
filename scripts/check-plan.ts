@@ -165,3 +165,85 @@ assert.equal(
 console.log('ok  finished work is never scheduled')
 
 console.log('\nplanner checks passed')
+
+// --- study time ----------------------------------------------------------
+
+const { studyShareToday, STUDY_LEAD_DAYS, MIN_STUDY_BLOCK } = await import(
+  '../src/lib/plan-day.ts'
+)
+
+const exam = (over: Partial<Plannable> = {}): Plannable =>
+  task({ id: 7, name: 'Midterm 2', estimatedMinutes: null, studyMinutes: 600, ...over })
+
+const inDays = (n: number) => {
+  const d = new Date(at('09:00'))
+  d.setDate(d.getDate() + n)
+  return d
+}
+const nine = at('09:00')
+
+// Nothing is revised for a month early. That is noise, not help.
+assert.equal(studyShareToday(exam({ dueAt: inDays(30) }), nine), 0)
+assert.equal(studyShareToday(exam({ dueAt: inDays(STUDY_LEAD_DAYS + 1) }), nine), 0)
+assert.ok(studyShareToday(exam({ dueAt: inDays(STUDY_LEAD_DAYS) }), nine) > 0)
+console.log('ok  study starts only once the exam is inside the lead window')
+
+// Ten hours over ten days is an hour a day, today included.
+assert.equal(studyShareToday(exam({ dueAt: inDays(9) }), nine), 60)
+console.log('ok  the total is spread evenly across the days left')
+
+// Falling behind raises today's share rather than losing the time.
+assert.equal(studyShareToday(exam({ dueAt: inDays(4) }), nine), 120)
+assert.equal(
+  studyShareToday(exam({ dueAt: inDays(4), studiedMinutes: 300 }), nine),
+  60,
+  'work already done comes off the remainder',
+)
+console.log('ok  falling behind raises the share, progress lowers it')
+
+// The day of the exam takes whatever is left.
+assert.equal(studyShareToday(exam({ dueAt: inDays(0) }), nine), 600)
+console.log('ok  the last day takes the whole remainder')
+
+// Finished preparation, or a passed date, asks for nothing.
+assert.equal(studyShareToday(exam({ dueAt: inDays(4), studiedMinutes: 600 }), nine), 0)
+assert.equal(studyShareToday(exam({ dueAt: inDays(-1) }), nine), 0)
+assert.equal(studyShareToday(exam({ dueAt: inDays(2), status: 'done' }), nine), 0)
+console.log('ok  nothing is asked once it is done or past')
+
+// A trickle is rounded up to something worth sitting down for.
+const trickle = studyShareToday(exam({ studyMinutes: 30, dueAt: inDays(13) }), nine)
+assert.equal(trickle, MIN_STUDY_BLOCK, 'never schedules a two minute session')
+console.log('ok  a tiny share becomes one worthwhile block')
+
+// An exam with no estimate still earns study blocks rather than being
+// dismissed as unschedulable, which is the whole point.
+const examPlan = planDay({
+  day,
+  dayStart: '09:00',
+  dayEnd: '17:00',
+  breakMinutes: 10,
+  busy: [],
+  now: nine,
+  items: [exam({ dueAt: inDays(9) })],
+})
+assert.equal(examPlan.blocks.length, 1)
+assert.equal(examPlan.blocks[0].kind, 'study')
+assert.equal(minutes(examPlan.blocks[0].start, examPlan.blocks[0].end), 60)
+assert.equal(examPlan.unplaced.length, 0, 'not reported as missing an estimate')
+console.log('ok  an exam with study time is scheduled, not dismissed')
+
+// Something with both gets a study block and a work block.
+const both = planDay({
+  day,
+  dayStart: '09:00',
+  dayEnd: '17:00',
+  breakMinutes: 0,
+  busy: [],
+  now: nine,
+  items: [exam({ dueAt: inDays(9), estimatedMinutes: 120 })],
+})
+assert.deepEqual(both.blocks.map((b) => b.kind).sort(), ['study', 'work'])
+console.log('ok  preparing and doing are separate blocks')
+
+console.log('\nstudy planning checks passed')

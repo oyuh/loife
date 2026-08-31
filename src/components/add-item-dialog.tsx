@@ -73,9 +73,20 @@ const ESTIMATES = [
   { value: '240', label: '4h' },
 ] as const
 
+/** Totals for preparation, which the planner spreads over the days left. */
+const STUDY_TOTALS = [
+  { value: '', label: 'None' },
+  { value: '60', label: '1h' },
+  { value: '180', label: '3h' },
+  { value: '360', label: '6h' },
+  { value: '600', label: '10h' },
+  { value: '1200', label: '20h' },
+] as const
+
 const EMPTY = {
   name: '',
   estimatedMinutes: '',
+  studyMinutes: '',
   courseId: 'none',
   type: 'task',
   date: '',
@@ -118,6 +129,7 @@ export function AddItemDialog({
       estimatedMinutes: item.estimatedMinutes
         ? String(item.estimatedMinutes)
         : '',
+      studyMinutes: item.studyMinutes ? String(item.studyMinutes) : '',
       location: item.location ?? '',
       notes: item.notes ?? '',
     })
@@ -136,6 +148,7 @@ export function AddItemDialog({
         estimatedMinutes: form.estimatedMinutes
           ? Number(form.estimatedMinutes)
           : null,
+        studyMinutes: form.studyMinutes ? Number(form.studyMinutes) : null,
         location: form.location,
         notes: form.notes,
       }
@@ -409,6 +422,31 @@ function ItemForm({
         </ToggleGroup>
         <p className="text-muted-foreground text-xs">
           Only work with an estimate can be scheduled into your day.
+        </p>
+      </Field>
+
+      <Field>
+        <FieldLabel>Preparation before it</FieldLabel>
+        <ToggleGroup
+          className="w-full"
+          onValueChange={(value: string) => set('studyMinutes', value)}
+          type="single"
+          value={form.studyMinutes}
+          variant="outline"
+        >
+          {STUDY_TOTALS.map((option) => (
+            <ToggleGroupItem
+              className="min-h-11 flex-1"
+              key={option.label}
+              value={option.value}
+            >
+              {option.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <p className="text-muted-foreground text-xs">
+          Total revision, spread over the days before it rather than booked in
+          one lump. Study you log comes off the remainder.
         </p>
       </Field>
 

@@ -43,6 +43,13 @@
       "when": 1788217203957,
       "tag": "0005_sleepy_marvel_apes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788218099985,
+      "tag": "0006_tiny_ozymandias",
+      "breakpoints": true
     }
   ]
 }
