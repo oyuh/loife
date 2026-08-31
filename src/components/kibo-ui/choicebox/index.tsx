@@ -106,5 +106,9 @@ export type ChoiceboxIndicatorProps = Partial<
 export const ChoiceboxIndicator = (props: ChoiceboxIndicatorProps) => {
   const context = useChoiceboxItemContext()
 
-  return <RadioGroupItem {...props} value={context.value} />
+  // Local fix to the kibo source. ChoiceboxItem wraps the card in
+  // <FieldLabel htmlFor={id}>, but upstream never forwards that id to the
+  // radio, so the label pointed at nothing and only the small circle was
+  // clickable. Forwarding it makes the whole card select the option.
+  return <RadioGroupItem {...props} id={context.id} value={context.value} />
 }
