@@ -119,3 +119,49 @@ export const deleteLogEntry = createServerFn({ method: 'POST' })
     await requireUser()
     await db.delete(logEntries).where(eq(logEntries.id, data.id))
   })
+
+const dayInput = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  title: z.string().max(200).nullable(),
+  body: z.string().max(100_000).nullable(),
+})
+
+/**
+ * Writes a day's entry, creating it if that day has none.
+ *
+ * Keyed on the date rather than an id, so the page can offer today as a place
+ * to write before any row exists. Unlike appendToToday this replaces the body,
+ * because it backs a textarea rather than a one line capture.
+ */
+export const saveDay = createServerFn({ method: 'POST' })
+  .validator(dayInput)
+  .handler(async ({ data }) => {
+    await requireUser()
+    const trim = (value: string | null) => value?.trim() || null
+
+    const [row] = await db
+      .insert(logEntries)
+      .values({
+        date: data.date,
+        kind: 'journal',
+        title: trim(data.title),
+        body: trim(data.body),
+      })
+      .onConflictDoUpdate({
+        target: logEntries.date,
+        targetWhere: sql`${logEntries.kind} = 'journal'`,
+        set: { title: trim(data.title), body: trim(data.body) },
+      })
+      .returning({ id: logEntries.id })
+
+    return row
+  })
+
+/** Full entries for the journal page, newest first. */
+export const listDays = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireUser()
+  return db
+    .select()
+    .from(logEntries)
+    .orderBy(desc(logEntries.date), desc(logEntries.id))
+})

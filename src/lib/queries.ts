@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query'
 import { listCourses } from '#/server/courses'
 import { listItems } from '#/server/items'
-import { listLogEntries } from '#/server/journal'
+import { listDays } from '#/server/journal'
 
 /**
  * Shared query definitions. Route loaders prime these on the server and the
@@ -20,5 +20,5 @@ export const coursesQuery = queryOptions({
 
 export const journalQuery = queryOptions({
   queryKey: ['journal'] as const,
-  queryFn: () => listLogEntries(),
+  queryFn: () => listDays(),
 })
