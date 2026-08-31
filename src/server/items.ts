@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '#/db'
 import { courses, items } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
+import { syncItem } from './calendar'
 
 // Nothing here may export a plain function that touches the session. The
 // bundler strips a createServerFn handler body from the client build, but a
@@ -113,6 +114,9 @@ export const createItem = createServerFn({ method: 'POST' })
       .insert(items)
       .values(data)
       .returning({ id: items.id })
+    // Deliberately not awaited. The calendar is a rendering of the database,
+    // so a slow Google call must never hold up the response.
+    void syncItem(row.id)
     return row
   })
 
@@ -131,4 +135,5 @@ export const setItemDue = createServerFn({ method: 'POST' })
       .update(items)
       .set({ dueAt: data.dueAt, allDay: data.allDay })
       .where(eq(items.id, data.id))
+    void syncItem(data.id)
   })

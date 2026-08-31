@@ -185,3 +185,53 @@ for (const [bucket, offset] of [['today', 0], ['tomorrow', 1], ['week', 7], ['la
 console.log('ok  every drop target round trips back to its own bucket')
 
 console.log('\nreschedule checks passed')
+
+// --- google calendar event mapping --------------------------------------
+
+const { toCalendarEvent, localDateString } = await import(
+  '../src/lib/calendar-event.ts'
+)
+
+const calItem = (over: Record<string, unknown> = {}) => ({
+  name: 'Problem set 7',
+  type: 'assignment',
+  priority: 'normal',
+  dueAt: at('2026-09-15T23:59:00'),
+  allDay: true,
+  location: null,
+  notes: null,
+  ...over,
+}) as Parameters<typeof toCalendarEvent>[0]
+
+const opts = { timeZone: 'America/Chicago' }
+
+assert.equal(toCalendarEvent(calItem({ dueAt: null }), opts), null, 'no due date, no event')
+console.log('ok  an item with no due date produces no event')
+
+// Google treats all-day end.date as exclusive. Same-day start and end draws
+// nothing in most clients, which is the bug this pins down.
+const allDayEvent = toCalendarEvent(calItem(), opts)
+assert.equal(allDayEvent?.start.date, '2026-09-15')
+assert.equal(allDayEvent?.end.date, '2026-09-16', 'all-day end must be the next day')
+assert.equal(allDayEvent?.start.dateTime, undefined, 'all-day uses date, never dateTime')
+console.log('ok  all-day events end on the following day')
+
+// Local calendar date, not the UTC one, which is already tomorrow at 11pm CDT.
+assert.equal(localDateString(at('2026-09-15T23:00:00')), '2026-09-15')
+console.log('ok  event dates use the local day, not the UTC one')
+
+const timedEvent = toCalendarEvent(calItem({ allDay: false, dueAt: at('2026-09-15T17:00:00') }), opts)
+assert.ok(timedEvent?.start.dateTime && timedEvent.end.dateTime)
+assert.equal(timedEvent?.start.date, undefined, 'timed uses dateTime, never date')
+assert.ok(
+  new Date(timedEvent.end.dateTime as string) > new Date(timedEvent.start.dateTime as string),
+  'Google rejects an end at or before the start',
+)
+console.log('ok  timed events have a non-zero duration')
+
+const titledEvent = toCalendarEvent(calItem(), { ...opts, courseLabel: 'CS 2340' })
+assert.equal(titledEvent?.summary, 'CS 2340: Problem set 7')
+assert.match(titledEvent?.description ?? '', /assignment/)
+console.log('ok  the course leads the summary')
+
+console.log('\ncalendar event checks passed')

@@ -144,3 +144,24 @@ export type LogEntry = typeof logEntries.$inferSelect
 export type NewLogEntry = typeof logEntries.$inferInsert
 export type Attachment = typeof attachments.$inferSelect
 export type NewAttachment = typeof attachments.$inferInsert
+
+/**
+ * One row, holding the Google grant. There is one user, so this is a place to
+ * keep a refresh token rather than a real settings system. The CHECK keeps it
+ * to a single row so nothing has to guess which one is current.
+ */
+export const settings = pgTable(
+  'settings',
+  {
+    id: integer('id').primaryKey().default(1),
+    googleRefreshToken: text('google_refresh_token'),
+    googleCalendarId: text('google_calendar_id'),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [check('settings_is_a_single_row', sql`${t.id} = 1`)],
+)
+
+export type Settings = typeof settings.$inferSelect
