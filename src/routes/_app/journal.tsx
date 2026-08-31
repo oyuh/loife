@@ -6,6 +6,7 @@ import {
 import { createFileRoute } from '@tanstack/react-router'
 import { Check, PencilLine } from 'lucide-react'
 import { useState } from 'react'
+import { AttachmentsList } from '#/components/attachments-list'
 import { AttachmentsPanel } from '#/components/attachments-panel'
 import { Pill } from '#/components/kibo-ui/pill'
 import { Markdown } from '#/components/markdown'
@@ -208,7 +209,12 @@ function DayEntry({ day, isToday }: { day: Day; isToday: boolean }) {
           </button>
         )}
 
-        {day.id > 0 && editing && <AttachmentsPanel logEntryId={day.id} />}
+        {day.id > 0 &&
+          (editing ? (
+            <AttachmentsPanel logEntryId={day.id} />
+          ) : (
+            <AttachmentsList owner={{ logEntryId: day.id }} />
+          ))}
       </div>
     </article>
   )

@@ -1,8 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '#/db'
-import { courses, items } from '#/db/schema'
+import { attachments, courses, items } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
 import { removeItemEvent, syncItem } from './calendar'
 
@@ -20,6 +20,7 @@ export interface ItemRow {
   status: 'todo' | 'doing' | 'done'
   location: string | null
   notes: string | null
+  attachmentCount: number
   course: {
     id: number
     name: string
@@ -52,6 +53,12 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
         courseName: courses.name,
         courseCode: courses.code,
         courseColor: courses.color,
+        // A correlated count rather than a join, so the row is not multiplied
+        // by its attachments and then collapsed again.
+        attachmentCount: sql<number>`(
+          select count(*)::int from ${attachments}
+          where ${attachments.itemId} = ${items.id}
+        )`,
       })
       .from(items)
       .leftJoin(courses, eq(items.courseId, courses.id))

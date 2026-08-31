@@ -4,10 +4,11 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { CalendarCheck, ChevronRight } from 'lucide-react'
+import { CalendarCheck, ChevronRight, Paperclip } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AddItemDialog } from '#/components/add-item-dialog'
+import { AttachmentsList } from '#/components/attachments-list'
 import { InlineLog } from '#/components/inline-log'
 import { RowContextMenu, RowMenuButton } from '#/components/item-row-actions'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
@@ -29,6 +30,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '#/components/ui/collapsible'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '#/components/ui/dialog'
 import {
   Empty,
   EmptyDescription,
@@ -94,6 +101,7 @@ function Today() {
     () => new Set(['week', 'later', 'someday']),
   )
   const [confirming, setConfirming] = useState<ItemRow | null>(null)
+  const [showingFiles, setShowingFiles] = useState<ItemRow | null>(null)
 
   const toggleSection = (bucket: string) =>
     setCollapsed((previous) => {
@@ -317,6 +325,20 @@ function Today() {
                               </ItemContent>
                             </button>
 
+                            {item.attachmentCount > 0 && (
+                              <Button
+                                aria-label={`Files on ${item.name}`}
+                                className="min-h-10 shrink-0 gap-1 px-2 text-muted-foreground text-xs"
+                                onClick={() => setShowingFiles(item)}
+                                size="sm"
+                                type="button"
+                                variant="ghost"
+                              >
+                                <Paperclip />
+                                {item.attachmentCount}
+                              </Button>
+                            )}
+
                             {/* P3 is the default and says nothing, so only the
                           deviations get a pill. */}
                             {!done && item.priority !== DEFAULT_PRIORITY && (
@@ -378,6 +400,24 @@ function Today() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setShowingFiles(null)
+        }}
+        open={showingFiles !== null}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">
+              {showingFiles?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {showingFiles && (
+            <AttachmentsList owner={{ itemId: showingFiles.id }} />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AddItemDialog
         item={editing}

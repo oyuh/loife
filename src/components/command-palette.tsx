@@ -74,9 +74,7 @@ export function CommandPalette({
       type: item.type,
       priority: item.priority,
       status: item.status,
-      // The list query carries no attachment count, so has:file would lie if
-      // this guessed. It stays false until the query provides one.
-      hasAttachment: false,
+      hasAttachment: item.attachmentCount > 0,
     }))
 
     const fromDays = days.map((day) => ({
