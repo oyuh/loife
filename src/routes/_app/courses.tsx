@@ -2,6 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { BookOpen, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { CalendarStatus } from '#/components/calendar-status'
 import { CourseDialog } from '#/components/course-dialog'
 import { Pill } from '#/components/kibo-ui/pill'
 import { Button } from '#/components/ui/button'
@@ -72,6 +73,10 @@ function Courses() {
           Add class
         </Button>
       </header>
+
+      <div className="mb-6">
+        <CalendarStatus />
+      </div>
 
       {courses.length === 0 ? (
         <Empty className="border border-dashed">

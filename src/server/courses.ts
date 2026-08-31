@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '#/db'
 import { courses } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
-import { syncCourse } from './calendar'
+import { syncCourse } from './calendar.server'
 
 export interface CourseRow {
   id: number

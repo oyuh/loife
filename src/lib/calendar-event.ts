@@ -16,12 +16,66 @@ export interface SyncableItem {
   notes: string | null
 }
 
+export interface CalendarReminder {
+  method: 'popup' | 'email'
+  minutes: number
+}
+
 export interface CalendarEventBody {
   summary: string
   description?: string
   location?: string
   start: { date?: string; dateTime?: string; timeZone?: string }
   end: { date?: string; dateTime?: string; timeZone?: string }
+  reminders?: { useDefault: boolean; overrides?: CalendarReminder[] }
+}
+
+/**
+ * Google measures an all-day reminder from midnight at the start of the day,
+ * so 900 minutes is 9am the morning before. A timed event measures from its
+ * own start, where 60 is simply an hour ahead.
+ */
+const MORNING_BEFORE = 900
+const HOUR_BEFORE = 60
+const DAY_BEFORE = 1440
+const CLASS_STARTING = 10
+
+/**
+ * What to be reminded of, and when.
+ *
+ * Set explicitly rather than left to the calendar default, since a calendar
+ * created through the API has no useful default and would notify about
+ * nothing at all.
+ */
+export function remindersFor(
+  type: string,
+  allDay: boolean,
+): { useDefault: boolean; overrides: CalendarReminder[] } {
+  const overrides: CalendarReminder[] = []
+
+  if (allDay) {
+    overrides.push({ method: 'popup', minutes: MORNING_BEFORE })
+  } else {
+    overrides.push({ method: 'popup', minutes: HOUR_BEFORE })
+  }
+
+  // An exam is worth knowing about the day before as well as on the day.
+  if (type === 'exam') {
+    overrides.push({
+      method: 'popup',
+      minutes: allDay ? DAY_BEFORE + MORNING_BEFORE : DAY_BEFORE,
+    })
+  }
+
+  return { useDefault: false, overrides }
+}
+
+/** A class meeting only needs enough warning to walk there. */
+export const CLASS_REMINDERS = {
+  useDefault: false,
+  overrides: [
+    { method: 'popup', minutes: CLASS_STARTING },
+  ] as CalendarReminder[],
 }
 
 /** A deadline has no duration, and Google rejects an end at or before start. */
@@ -67,6 +121,7 @@ export function toCalendarEvent(
       ...base,
       start: { date: localDateString(item.dueAt) },
       end: { date: localDateString(next) },
+      reminders: remindersFor(item.type, true),
     }
   }
 
@@ -76,5 +131,6 @@ export function toCalendarEvent(
     ...base,
     start: { dateTime: item.dueAt.toISOString(), timeZone: options.timeZone },
     end: { dateTime: end.toISOString(), timeZone: options.timeZone },
+    reminders: remindersFor(item.type, false),
   }
 }

@@ -187,7 +187,12 @@ export interface CalendarEvent {
   /** All-day events use a date, timed ones use a dateTime. */
   start: { date?: string; dateTime?: string; timeZone?: string }
   end: { date?: string; dateTime?: string; timeZone?: string }
+  /** Always sent, empty included, so a PUT can clear a former recurrence. */
   recurrence?: string[]
+  reminders?: {
+    useDefault: boolean
+    overrides?: { method: string; minutes: number }[]
+  }
 }
 
 export async function insertEvent(event: CalendarEvent): Promise<string> {
@@ -199,14 +204,24 @@ export async function insertEvent(event: CalendarEvent): Promise<string> {
   return created.id
 }
 
-export async function patchEvent(
+/**
+ * Replaces the event outright with PUT rather than merging with PATCH.
+ *
+ * PATCH leaves out anything the body omits, so clearing a location, dropping
+ * a note, or turning a weekly class into a single session would silently keep
+ * the old value. A full replace makes the event equal what was computed, by
+ * construction rather than by remembering to send every field.
+ *
+ * These events are ours alone, so there is nothing on them worth preserving.
+ */
+export async function updateEvent(
   eventId: string,
   event: CalendarEvent,
 ): Promise<boolean> {
   const calendarId = encodeURIComponent(await ensureCalendarId())
   const result = await calendarFetch(
     `/calendars/${calendarId}/events/${encodeURIComponent(eventId)}`,
-    { method: 'PATCH', body: JSON.stringify(event) },
+    { method: 'PUT', body: JSON.stringify(event) },
   )
   // null means Google no longer has it, so the caller should insert instead.
   return result !== null

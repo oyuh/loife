@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '#/db'
 import { attachments, courses, items } from '#/db/schema'
 import { requireUser } from '#/lib/session.server'
-import { removeItemEvent, syncItem } from './calendar'
+import { removeItemEvent, syncItem } from './calendar.server'
 
 // Nothing here may export a plain function that touches the session. The
 // bundler strips a createServerFn handler body from the client build, but a

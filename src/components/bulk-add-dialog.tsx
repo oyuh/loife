@@ -162,7 +162,9 @@ export function BulkAddDialog({
                 <SelectItem value="none">No course</SelectItem>
                 {courses.map((course) => (
                   <SelectItem key={course.id} value={String(course.id)}>
-                    {course.code ?? course.name}
+                    {course.code
+                      ? `${course.code} · ${course.name}`
+                      : course.name}
                   </SelectItem>
                 ))}
               </SelectContent>

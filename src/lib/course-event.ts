@@ -1,4 +1,4 @@
-import type { CalendarEventBody } from './calendar-event'
+import { type CalendarEventBody, CLASS_REMINDERS } from './calendar-event.ts'
 
 /**
  * Turns a course's meeting pattern into one recurring Google Calendar event.
@@ -143,6 +143,7 @@ export function toCourseEvent(
       start: { dateTime: applyTime(anchor, startTime).toISOString(), timeZone },
       end: { dateTime: applyTime(anchor, endTime).toISOString(), timeZone },
       recurrence: [],
+      reminders: CLASS_REMINDERS,
     }
   }
 
@@ -152,6 +153,7 @@ export function toCourseEvent(
     start: { dateTime: applyTime(anchor, startTime).toISOString(), timeZone },
     end: { dateTime: applyTime(anchor, endTime).toISOString(), timeZone },
     recurrence,
+    reminders: CLASS_REMINDERS,
   }
 }
 

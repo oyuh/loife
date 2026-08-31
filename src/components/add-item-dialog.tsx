@@ -253,7 +253,7 @@ function AddItemForm({
     { value: '', label: 'No course' },
     ...courses.map((course) => ({
       value: String(course.id),
-      label: course.code ?? course.name,
+      label: course.code ? `${course.code} · ${course.name}` : course.name,
     })),
   ]
 

@@ -445,3 +445,93 @@ assert.equal((moveTargetDate(target('Tomorrow'), now) as Date).getHours(), 23)
 console.log('ok  moved items are due by end of day')
 
 console.log('\nmove target checks passed')
+
+// --- reminders -----------------------------------------------------------
+
+const { remindersFor, CLASS_REMINDERS } = await import(
+  '../src/lib/calendar-event.ts'
+)
+
+// A calendar created through the API has no useful default, so every event
+// must carry its own or it notifies about nothing.
+const allDayEvent2 = toCalendarEvent(calItem(), opts)
+assert.equal(allDayEvent2?.reminders?.useDefault, false, 'never defers to the calendar')
+assert.ok((allDayEvent2?.reminders?.overrides?.length ?? 0) > 0)
+console.log('ok  every event carries its own reminder')
+
+// Google measures an all-day reminder from midnight, so 900 is 9am the day
+// before rather than fifteen hours before the deadline itself.
+assert.deepEqual(remindersFor('assignment', true).overrides, [
+  { method: 'popup', minutes: 900 },
+])
+assert.deepEqual(remindersFor('assignment', false).overrides, [
+  { method: 'popup', minutes: 60 },
+])
+console.log('ok  all-day reminds the morning before, timed an hour ahead')
+
+// An exam earns a second warning.
+assert.equal(remindersFor('exam', false).overrides.length, 2)
+assert.ok(remindersFor('exam', false).overrides.some((r) => r.minutes === 1440))
+assert.equal(remindersFor('reading', false).overrides.length, 1)
+console.log('ok  exams get a second reminder a day out')
+
+// Google caps overrides at five per event.
+for (const type of ['assignment', 'exam', 'task', 'reading']) {
+  for (const allDay of [true, false]) {
+    assert.ok(
+      remindersFor(type, allDay).overrides.length <= 5,
+      `${type} allDay=${allDay} stays within Google's cap`,
+    )
+  }
+}
+console.log('ok  no event exceeds the five override cap')
+
+// A class only needs enough warning to walk there.
+assert.deepEqual(CLASS_REMINDERS.overrides, [{ method: 'popup', minutes: 10 }])
+assert.equal(
+  toCourseEvent(course(), 'America/Chicago')?.reminders?.overrides?.[0]?.minutes,
+  10,
+)
+console.log('ok  class meetings remind ten minutes before')
+
+console.log('\nreminder checks passed')
+
+// --- edits must actually change the event --------------------------------
+
+// Every field the sync sends is recomputed from the row, so an edit produces a
+// different body rather than reusing the old one. These are the edits that
+// would have gone stale under a merging PATCH.
+
+const before = toCourseEvent(course(), 'America/Chicago')
+
+const movedDays = toCourseEvent(course({ days: [2, 4] }), 'America/Chicago')
+assert.notEqual(movedDays?.recurrence[0], before?.recurrence[0])
+assert.match(movedDays?.recurrence[0] ?? '', /BYDAY=TU,TH/)
+console.log('ok  changing the meeting days rewrites the rule')
+
+const movedTime = toCourseEvent(course({ startTime: '14:00:00', endTime: '15:15:00' }), 'America/Chicago')
+assert.notEqual(movedTime?.start.dateTime, before?.start.dateTime)
+console.log('ok  changing the times moves the event')
+
+const shorterTerm = toCourseEvent(course({ termEnd: '2026-11-01' }), 'America/Chicago')
+assert.notEqual(shorterTerm?.recurrence[0], before?.recurrence[0])
+console.log('ok  changing the term end moves UNTIL')
+
+const biweeklyNow = toCourseEvent(course({ meetingInterval: 2 }), 'America/Chicago')
+assert.match(biweeklyNow?.recurrence[0] ?? '', /INTERVAL=2/)
+console.log('ok  changing the repeat adds INTERVAL')
+
+// The one a merge would have got wrong: dropping the weekly pattern for a
+// single session must clear the recurrence, not leave the old rule behind.
+const nowOneOff = toCourseEvent(
+  course({ days: [], termStart: null, termEnd: null, meetingDates: ['2026-10-05'] }),
+  'America/Chicago',
+)
+assert.deepEqual(nowOneOff?.recurrence, [], 'recurrence is sent empty, not omitted')
+console.log('ok  dropping the weekly pattern clears the rule rather than omitting it')
+
+// Clearing a location must send nothing so a full replace removes it.
+assert.equal(toCourseEvent(course({ location: null }), 'America/Chicago')?.location, undefined)
+console.log('ok  a cleared location is absent, which a PUT removes')
+
+console.log('\nedit propagation checks passed')
