@@ -46,6 +46,11 @@ export const courses = pgTable('courses', {
   days: smallint('days').array(),
   startTime: time('start_time'),
   endTime: time('end_time'),
+  // 1 is weekly, 2 is every other week, and so on. Labs are rarely weekly.
+  meetingInterval: smallint('meeting_interval').notNull().default(1),
+  // One-off meetings that follow no pattern, added on top of the weekly rule
+  // or used on their own when a course has no pattern at all.
+  meetingDates: date('meeting_dates').array(),
   location: text('location'),
   notes: text('notes'),
   active: boolean('active').notNull().default(true),

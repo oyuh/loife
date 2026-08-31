@@ -17,6 +17,8 @@ export interface CourseRow {
   days: number[] | null
   startTime: string | null
   endTime: string | null
+  meetingInterval: number
+  meetingDates: string[] | null
   location: string | null
   notes: string | null
   active: boolean
@@ -37,6 +39,8 @@ export const listCourses = createServerFn({ method: 'GET' }).handler(
         days: courses.days,
         startTime: courses.startTime,
         endTime: courses.endTime,
+        meetingInterval: courses.meetingInterval,
+        meetingDates: courses.meetingDates,
         location: courses.location,
         notes: courses.notes,
         active: courses.active,
@@ -72,6 +76,8 @@ const courseInput = z.object({
   days: z.array(z.number().int().min(0).max(6)).max(7),
   startTime: timeOnly,
   endTime: timeOnly,
+  meetingInterval: z.number().int().min(1).max(8),
+  meetingDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(60),
   location: z.string().max(200).nullable().transform(emptyToNull),
   notes: z.string().max(2000).nullable().transform(emptyToNull),
   active: z.boolean(),

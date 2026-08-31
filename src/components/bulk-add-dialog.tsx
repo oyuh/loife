@@ -21,16 +21,19 @@ import {
 } from '#/components/ui/drawer'
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
 import { toDueFields, toDueValue } from '#/lib/due-date'
 import { parseSyllabus } from '#/lib/parse-syllabus'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { createItems } from '#/server/items'
-
-const FIELD =
-  'flex h-11 w-full rounded-md border border-input bg-transparent px-3 text-base ' +
-  'outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
 const PLACEHOLDER = `HW1 - Sep 5
 Problem set 6 — 9/12
@@ -99,7 +102,8 @@ export function BulkAddDialog({
             })
             return {
               name: row.name,
-              courseId: courseId ? Number(courseId) : null,
+              courseId:
+                courseId && courseId !== 'none' ? Number(courseId) : null,
               type: type as 'assignment' | 'exam' | 'task' | 'reading',
               dueAt,
               allDay,
@@ -145,43 +149,46 @@ export function BulkAddDialog({
         <div className="grid grid-cols-3 gap-3">
           <Field>
             <FieldLabel>Course</FieldLabel>
-            <select
-              className={FIELD}
-              onChange={(event) => setCourseId(event.target.value)}
-              value={courseId}
-            >
-              <option value="">No course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.code ?? course.name}
-                </option>
-              ))}
-            </select>
+            <Select onValueChange={setCourseId} value={courseId || 'none'}>
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No course</SelectItem>
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={String(course.id)}>
+                    {course.code ?? course.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel>Type</FieldLabel>
-            <select
-              className={FIELD}
-              onChange={(event) => setType(event.target.value)}
-              value={type}
-            >
-              <option value="assignment">Assignment</option>
-              <option value="exam">Exam</option>
-              <option value="task">Task</option>
-              <option value="reading">Reading</option>
-            </select>
+            <Select onValueChange={setType} value={type}>
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="assignment">Assignment</SelectItem>
+                <SelectItem value="exam">Exam</SelectItem>
+                <SelectItem value="task">Task</SelectItem>
+                <SelectItem value="reading">Reading</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel>Priority</FieldLabel>
-            <select
-              className={FIELD}
-              onChange={(event) => setPriority(event.target.value)}
-              value={priority}
-            >
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-            </select>
+            <Select onValueChange={setPriority} value={priority}>
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
         </div>
       </FieldGroup>

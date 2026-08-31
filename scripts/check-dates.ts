@@ -296,3 +296,64 @@ assert.ok(toUntil('2026-12-15'))
 console.log('ok  postgres time values round trip into the form')
 
 console.log('\ncourse meeting checks passed')
+
+// --- irregular meeting patterns -----------------------------------------
+
+// Biweekly labs.
+const biweekly = toCourseEvent(
+  course({ days: [2], meetingInterval: 2, startTime: '14:00:00', endTime: '16:50:00' }),
+  'America/Chicago',
+)
+assert.match(biweekly?.recurrence[0] ?? '', /FREQ=WEEKLY;INTERVAL=2;BYDAY=TU/)
+console.log('ok  a biweekly lab carries INTERVAL=2')
+
+// Weekly stays clean, with no redundant INTERVAL=1.
+assert.doesNotMatch(
+  toCourseEvent(course({ meetingInterval: 1 }), 'America/Chicago')?.recurrence[0] ?? '',
+  /INTERVAL/,
+  'weekly omits INTERVAL entirely',
+)
+console.log('ok  a weekly course omits INTERVAL')
+
+// A weekly pattern plus one-off extra sessions.
+const withExtras = toCourseEvent(
+  course({ meetingDates: ['2026-10-31', '2026-11-07'] }),
+  'America/Chicago',
+)
+assert.equal(withExtras?.recurrence.length, 2, 'an RRULE and an RDATE')
+assert.match(withExtras?.recurrence[1] ?? '', /^RDATE:\d{8}T\d{6}Z,\d{8}T\d{6}Z$/)
+console.log('ok  extra sessions ride along as RDATE')
+
+// No weekly pattern at all, just a handful of scattered lab dates.
+const scattered = toCourseEvent(
+  course({
+    days: [], termStart: null, termEnd: null,
+    meetingDates: ['2026-09-04', '2026-09-25', '2026-10-16'],
+  }),
+  'America/Chicago',
+)
+assert.ok(scattered, 'scattered dates alone still make an event')
+assert.equal(scattered.recurrence.length, 1, 'RDATE only, no RRULE')
+assert.match(scattered.recurrence[0], /^RDATE:/)
+// The first date anchors the event, so it must not also appear in the RDATE.
+assert.equal(new Date(scattered.start.dateTime as string).getDate(), 4)
+assert.equal((scattered.recurrence[0].match(/,/g) ?? []).length, 1, 'two extras, not three')
+console.log('ok  scattered dates work with no weekly rule, anchor not repeated')
+
+// One single meeting is a plain event with no recurrence at all.
+const once = toCourseEvent(
+  course({ days: [], termStart: null, termEnd: null, meetingDates: ['2026-09-04'] }),
+  'America/Chicago',
+)
+assert.deepEqual(once?.recurrence, [])
+console.log('ok  a single session needs no recurrence')
+
+// Still nothing to place without times, or without any pattern or dates.
+assert.equal(toCourseEvent(course({ startTime: null }), 'America/Chicago'), null)
+assert.equal(
+  toCourseEvent(course({ days: [], termStart: null, termEnd: null, meetingDates: [] }), 'America/Chicago'),
+  null,
+)
+console.log('ok  no times or no dates still means no event')
+
+console.log('\nirregular meeting checks passed')

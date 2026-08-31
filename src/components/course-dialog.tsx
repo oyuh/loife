@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '#/components/ui/button'
@@ -20,6 +21,13 @@ import {
 } from '#/components/ui/drawer'
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { trimSeconds, WEEKDAYS } from '#/lib/course-event'
@@ -49,6 +57,9 @@ const EMPTY = {
   days: [] as number[],
   startTime: '',
   endTime: '',
+  meetingInterval: '1',
+  // Each row carries an id, since two blank dates would otherwise share a key.
+  meetingDates: [] as { id: string; value: string }[],
   location: '',
   notes: '',
   active: true,
@@ -67,6 +78,11 @@ function fromCourse(course: CourseRow): Form {
     days: course.days ?? [],
     startTime: trimSeconds(course.startTime),
     endTime: trimSeconds(course.endTime),
+    meetingInterval: String(course.meetingInterval ?? 1),
+    meetingDates: (course.meetingDates ?? []).map((value) => ({
+      id: crypto.randomUUID(),
+      value,
+    })),
     location: course.location ?? '',
     notes: course.notes ?? '',
     active: course.active,
@@ -104,6 +120,8 @@ export function CourseDialog({
         days: form.days,
         startTime: form.startTime || null,
         endTime: form.endTime || null,
+        meetingInterval: Number(form.meetingInterval),
+        meetingDates: form.meetingDates.map((d) => d.value).filter(Boolean),
         location: form.location,
         notes: form.notes,
         active: form.active,
@@ -277,6 +295,87 @@ function CourseForm({
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
+        </Field>
+
+        <Field>
+          <FieldLabel>Repeats</FieldLabel>
+          <Select
+            onValueChange={(value) => set('meetingInterval', value)}
+            value={form.meetingInterval}
+          >
+            <SelectTrigger className="h-11 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Every week</SelectItem>
+              <SelectItem value="2">Every 2 weeks</SelectItem>
+              <SelectItem value="3">Every 3 weeks</SelectItem>
+              <SelectItem value="4">Every 4 weeks</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field>
+          <FieldLabel>
+            One-off dates
+            <span className="ml-1 font-normal text-muted-foreground">
+              for labs that follow no pattern
+            </span>
+          </FieldLabel>
+          <div className="space-y-2">
+            {form.meetingDates.map((row, index) => (
+              <div className="flex gap-2" key={row.id}>
+                <Input
+                  aria-label={`One-off date ${index + 1}`}
+                  className="h-11 flex-1"
+                  onChange={(event) =>
+                    set(
+                      'meetingDates',
+                      form.meetingDates.map((existing) =>
+                        existing.id === row.id
+                          ? { ...existing, value: event.target.value }
+                          : existing,
+                      ),
+                    )
+                  }
+                  type="date"
+                  value={row.value}
+                />
+                <Button
+                  aria-label={`Remove one-off date ${index + 1}`}
+                  className="min-h-11"
+                  onClick={() =>
+                    set(
+                      'meetingDates',
+                      form.meetingDates.filter(
+                        (existing) => existing.id !== row.id,
+                      ),
+                    )
+                  }
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Trash2 />
+                </Button>
+              </div>
+            ))}
+            <Button
+              className="min-h-11"
+              onClick={() =>
+                set('meetingDates', [
+                  ...form.meetingDates,
+                  { id: crypto.randomUUID(), value: '' },
+                ])
+              }
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              <Plus />
+              Add a date
+            </Button>
+          </div>
         </Field>
 
         <div className="grid grid-cols-2 gap-3">

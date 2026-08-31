@@ -19,6 +19,10 @@ export interface MeetingCourse {
   /** Postgres `date` arrives as `2026-08-24`. */
   termStart: string | null
   termEnd: string | null
+  /** 1 is weekly, 2 is every other week, and so on. */
+  meetingInterval?: number | null
+  /** One-off meetings that follow no weekly pattern. */
+  meetingDates?: string[] | null
 }
 
 const BYDAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const
@@ -64,44 +68,90 @@ export function toUntil(termEnd: string): string | null {
   return `${endOfDay.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`
 }
 
+/** RDATE wants UTC basic format, the same shape as UNTIL. */
+function toRDate(value: Date): string {
+  return `${value.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`
+}
+
 export function toCourseEvent(
   course: MeetingCourse,
   timeZone: string,
 ): (CalendarEventBody & { recurrence: string[] }) | null {
   const { days, startTime, endTime, termStart, termEnd } = course
 
-  // A course without a meeting pattern is still a course, it just has nothing
-  // to put on a calendar.
-  if (!days?.length || !startTime || !endTime || !termStart || !termEnd) {
-    return null
+  // Times are what make a meeting, so without them there is nothing to place.
+  if (!startTime || !endTime) return null
+
+  const explicit = (course.meetingDates ?? [])
+    .map(parseDateOnly)
+    .filter((date): date is Date => date !== null)
+    .sort((a, b) => a.getTime() - b.getTime())
+
+  const hasWeekly = Boolean(days?.length && termStart && termEnd)
+
+  // A course with neither a weekly pattern nor explicit dates is still a
+  // course, it just has nothing to put on a calendar.
+  if (!hasWeekly && explicit.length === 0) return null
+
+  // The anchor is the weekly pattern's first meeting when there is one, so the
+  // RRULE expands from a day the class actually meets. Explicit dates are
+  // additions on top, which is why they never move it.
+  let anchor: Date | null = null
+  const recurrence: string[] = []
+
+  if (hasWeekly) {
+    const start = parseDateOnly(termStart as string)
+    anchor = start ? firstMeetingOn(start, days as number[]) : null
+    const until = toUntil(termEnd as string)
+
+    if (anchor && until) {
+      const byDay = [...(days as number[])]
+        .sort((a, b) => a - b)
+        .map((day) => BYDAY[day])
+        .join(',')
+
+      const interval = Math.max(1, course.meetingInterval ?? 1)
+      const every = interval > 1 ? `INTERVAL=${interval};` : ''
+
+      recurrence.push(`RRULE:FREQ=WEEKLY;${every}BYDAY=${byDay};UNTIL=${until}`)
+    } else {
+      anchor = null
+    }
   }
 
-  const start = parseDateOnly(termStart)
-  if (!start) return null
+  if (!anchor) {
+    anchor = explicit[0] ?? null
+    if (!anchor) return null
+  }
 
-  const first = firstMeetingOn(start, days)
-  if (!first) return null
+  // The anchor is already the event start, so it must not repeat as an RDATE.
+  const extras = explicit.filter(
+    (date) => date.getTime() !== (anchor as Date).getTime(),
+  )
 
-  const until = toUntil(termEnd)
-  if (!until) return null
+  if (extras.length > 0) {
+    recurrence.push(
+      `RDATE:${extras.map((date) => toRDate(applyTime(date, startTime))).join(',')}`,
+    )
+  }
 
-  const byDay = [...days]
-    .sort((a, b) => a - b)
-    .map((day) => BYDAY[day])
-    .join(',')
+  if (recurrence.length === 0) {
+    // A single explicit meeting and nothing else, which is a plain event.
+    return {
+      summary: course.code ? `${course.code} ${course.name}` : course.name,
+      location: course.location ?? undefined,
+      start: { dateTime: applyTime(anchor, startTime).toISOString(), timeZone },
+      end: { dateTime: applyTime(anchor, endTime).toISOString(), timeZone },
+      recurrence: [],
+    }
+  }
 
   return {
     summary: course.code ? `${course.code} ${course.name}` : course.name,
     location: course.location ?? undefined,
-    start: {
-      dateTime: applyTime(first, startTime).toISOString(),
-      timeZone,
-    },
-    end: {
-      dateTime: applyTime(first, endTime).toISOString(),
-      timeZone,
-    },
-    recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${byDay};UNTIL=${until}`],
+    start: { dateTime: applyTime(anchor, startTime).toISOString(), timeZone },
+    end: { dateTime: applyTime(anchor, endTime).toISOString(), timeZone },
+    recurrence,
   }
 }
 
