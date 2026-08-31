@@ -44,9 +44,11 @@ Sessions are sealed cookies from TanStack Start's `useSession`, which handles en
 
 ## Deploying to Railway
 
-1. Push this repo to GitHub.
-2. In Railway, create a project and pick **Deploy from GitHub repo**.
-3. Railway detects pnpm and runs `pnpm build`, then `pnpm start`. No Dockerfile needed.
-4. Add every variable from `.env.example` under **Variables**. Use a different `SESSION_SECRET` than your local one.
-5. Set `PUBLIC_URL` to the Railway domain, with no trailing slash.
-6. Add that same domain plus `/api/auth/callback` to your GitHub OAuth app.
+1. In Railway, create a project and pick **Deploy from GitHub repo**, then `oyuh/loife`.
+2. Railway detects pnpm and runs `pnpm build`, then `pnpm start`. No Dockerfile needed.
+3. Under **Settings → Networking**, add the custom domain and point a CNAME at the target Railway gives you. Wait for the certificate to issue before signing in, because the session cookie sets `Secure` in production and will not survive plain HTTP.
+4. Add every variable from `.env.example` under **Variables**, generating a `SESSION_SECRET` different from the local one.
+5. Set `PUBLIC_URL` to the custom domain with no trailing slash, for example `https://loife.example.com`. It drives the OAuth redirect URI, so the Railway subdomain will not work here once the custom domain is live.
+6. Set your GitHub OAuth app callback to `https://your_domain_here/api/auth/callback`.
+
+An OAuth app holds one callback URL at a time. Keep a second OAuth app pointed at `http://localhost:3000/api/auth/callback` so local development keeps working, and give each environment its own `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
