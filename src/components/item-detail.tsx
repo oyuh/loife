@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Check, Pencil, Trash2, Undo2 } from 'lucide-react'
 import { AttachmentsList } from '#/components/attachments-list'
+import { DateTimeText } from '#/components/date-time'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
 import { Markdown } from '#/components/markdown'
 import { Button } from '#/components/ui/button'
@@ -25,20 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select'
+import { formatClock, formatDayLong } from '#/lib/datetime'
 import { MOVE_TARGETS, type MoveTarget } from '#/lib/move-targets'
 import { PRIORITY_LABELS, PRIORITY_LEVELS } from '#/lib/urgency'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { type ItemRow, listItemEvents } from '#/server/items'
-
-const dateFormat = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-})
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  hour: 'numeric',
-  minute: '2-digit',
-})
 
 const PRIORITY_INDICATOR: Record<number, 'error' | 'warning' | 'success'> = {
   1: 'error',
@@ -78,14 +70,14 @@ export function ItemDetail({
 
   const subtitle = [
     done && item.completedAt
-      ? `Done ${dateFormat.format(item.completedAt)} at ${timeFormat.format(item.completedAt)}`
+      ? `Done ${formatDayLong(item.completedAt)} at ${formatClock(item.completedAt)}`
       : null,
     item.course?.code ?? item.course?.name,
     item.type,
     item.dueAt
       ? item.allDay
-        ? dateFormat.format(item.dueAt)
-        : `${dateFormat.format(item.dueAt)} at ${timeFormat.format(item.dueAt)}`
+        ? formatDayLong(item.dueAt)
+        : `${formatDayLong(item.dueAt)} at ${formatClock(item.dueAt)}`
       : 'No due date',
     item.location,
   ]
@@ -232,13 +224,6 @@ const EVENT_WORDS: Record<string, string> = {
   edited: 'Edited',
 }
 
-const stampFormat = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-})
-
 /** What has happened to this item, newest first. */
 function History({ itemId }: { itemId: number }) {
   const { data: events = [] } = useQuery({
@@ -261,9 +246,10 @@ function History({ itemId }: { itemId: number }) {
               {EVENT_WORDS[event.kind] ?? event.kind}
               {event.detail ? `, ${event.detail}` : ''}
             </span>
-            <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
-              {stampFormat.format(event.at)}
-            </span>
+            <DateTimeText
+              className="shrink-0 text-muted-foreground text-xs tabular-nums"
+              value={event.at}
+            />
           </li>
         ))}
       </ul>

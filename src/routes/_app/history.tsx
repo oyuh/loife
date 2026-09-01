@@ -2,6 +2,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { History as HistoryIcon } from 'lucide-react'
 import { useState } from 'react'
+import { DateTimeText } from '#/components/date-time'
 import { Pill } from '#/components/kibo-ui/pill'
 import {
   Empty,
@@ -26,17 +27,6 @@ import { listRecentActivity } from '#/server/items'
 export const Route = createFileRoute('/_app/history')({
   component: History,
   loader: ({ context }) => context.queryClient.ensureQueryData(itemsQuery),
-})
-
-const stamp = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-})
-const dayOnly = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
 })
 
 const EVENT_WORDS: Record<string, string> = {
@@ -156,10 +146,13 @@ function History() {
                   <span className="capitalize">{item.type}</span>
                   {item.completedAt ? (
                     <span className="text-primary">
-                      done {stamp.format(item.completedAt)}
+                      done <DateTimeText value={item.completedAt} />
                     </span>
                   ) : item.dueAt ? (
-                    <span>due {dayOnly.format(item.dueAt)}</span>
+                    <span>
+                      due{' '}
+                      <DateTimeText allDay={item.allDay} value={item.dueAt} />
+                    </span>
                   ) : null}
                   {item.estimatedMinutes && (
                     <span>est {minutesLabel(item.estimatedMinutes)}</span>
@@ -199,9 +192,10 @@ function History() {
                   <span className="text-muted-foreground">{event.name}</span>
                   {event.detail ? `, ${event.detail}` : ''}
                 </span>
-                <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
-                  {stamp.format(event.at)}
-                </span>
+                <DateTimeText
+                  className="shrink-0 text-muted-foreground text-xs tabular-nums"
+                  value={event.at}
+                />
               </li>
             ))}
           </ul>

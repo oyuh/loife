@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '#/components/ui/popover'
+import { formatKeyMonthDayYear } from '#/lib/datetime'
 import { cn } from '#/lib/utils'
 
 /**
@@ -81,7 +82,7 @@ export function DateField({
             variant="outline"
           >
             <CalendarIcon aria-hidden="true" className="shrink-0 opacity-60" />
-            {selected ? format(selected, 'MMM d, yyyy') : 'Pick a date'}
+            {value ? formatKeyMonthDayYear(value) : 'Pick a date'}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-auto p-0">

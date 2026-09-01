@@ -16,6 +16,11 @@ import { Field, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
 import { localDateString } from '#/lib/calendar-event'
+import {
+  formatKeyDayNumber,
+  formatKeyMonth,
+  formatKeyWeekday,
+} from '#/lib/datetime'
 import { journalQuery } from '#/lib/queries'
 import { cn } from '#/lib/utils'
 import { saveDay } from '#/server/journal'
@@ -25,19 +30,7 @@ export const Route = createFileRoute('/_app/journal')({
   loader: ({ context }) => context.queryClient.ensureQueryData(journalQuery),
 })
 
-const weekdayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'long' })
-const dayNumberFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric' })
-const monthFormat = new Intl.DateTimeFormat(undefined, {
-  month: 'long',
-  year: 'numeric',
-})
-
 type Day = ReturnType<typeof useJournal>['days'][number]
-
-function asDate(date: string) {
-  // Built from the string with a local midnight, since a bare date parses UTC.
-  return new Date(`${date}T00:00:00`)
-}
 
 function useJournal() {
   const { data } = useSuspenseQuery(journalQuery)
@@ -130,7 +123,7 @@ function Journal() {
 
       <div className="space-y-10">
         {shown.map((day) => {
-          const month = monthFormat.format(asDate(day.date))
+          const month = formatKeyMonth(day.date)
           const showMonth = month !== lastMonth
           lastMonth = month
 
@@ -178,8 +171,6 @@ function DayEntry({
     },
   })
 
-  const date = asDate(day.date)
-
   return (
     <article className="flex gap-4">
       {/* A date rail down the left, the way a paper journal reads. */}
@@ -190,9 +181,9 @@ function DayEntry({
         )}
       >
         <p className="font-semibold text-2xl leading-none tabular-nums">
-          {dayNumberFormat.format(date)}
+          {formatKeyDayNumber(day.date)}
         </p>
-        <p className="mt-1 text-xs">{weekdayFormat.format(date)}</p>
+        <p className="mt-1 text-xs">{formatKeyWeekday(day.date)}</p>
       </div>
 
       <div className="min-w-0 flex-1 space-y-2 border-border border-l pl-4">

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BookOpen, Play, Square } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { ClockText } from '#/components/date-time'
 import { Button } from '#/components/ui/button'
 import {
   Collapsible,
@@ -160,13 +161,8 @@ export function StudyTimer() {
       <CollapsibleContent className="space-y-3 border-border border-t px-4 py-4">
         {running ? (
           <p className="text-muted-foreground text-sm">
-            Started at{' '}
-            {running.startedAt.toLocaleTimeString(undefined, {
-              hour: 'numeric',
-              minute: '2-digit',
-            })}
-            . Stop it to log the time, which comes off what this needs before it
-            is due.
+            Started at <ClockText value={running.startedAt} />. Stop it to log
+            the time, which comes off what this needs before it is due.
           </p>
         ) : (
           <>

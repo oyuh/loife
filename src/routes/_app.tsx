@@ -6,6 +6,7 @@ import { AppShell } from '#/components/app-shell'
 import { BulkAddDialog } from '#/components/bulk-add-dialog'
 import { CommandPalette } from '#/components/command-palette'
 import { Toaster } from '#/components/ui/sonner'
+import { TooltipProvider } from '#/components/ui/tooltip'
 import { itemsQuery } from '#/lib/queries'
 import { fetchCurrentUser } from '#/server/auth'
 
@@ -35,7 +36,9 @@ function AppLayout() {
   const [openItemId, setOpenItemId] = useState<number | null>(null)
 
   return (
-    <>
+    // One provider for the whole signed-in app, so every date tooltip shares a
+    // delay and moving between two of them does not wait twice.
+    <TooltipProvider>
       <AppShell
         onAddItem={() => setAdding(true)}
         onOpenPalette={() => setPaletteOpen(true)}
@@ -61,7 +64,7 @@ function AppLayout() {
         }}
       />
       <Toaster position="top-center" />
-    </>
+    </TooltipProvider>
   )
 }
 

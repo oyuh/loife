@@ -6,17 +6,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '#/components/ui/collapsible'
+import { formatClock } from '#/lib/datetime'
 import { type Busy, planDay } from '#/lib/plan-day'
 import { coursesQuery } from '#/lib/queries'
 import { busyPeriods, calendarStatus } from '#/server/calendar'
 import type { CourseRow } from '#/server/courses'
 import type { ItemRow } from '#/server/items'
 import { studiedByItem } from '#/server/study'
-
-const clock = new Intl.DateTimeFormat(undefined, {
-  hour: 'numeric',
-  minute: '2-digit',
-})
 
 function minutesLabel(value: number) {
   if (value < 60) return `${Math.round(value)}m`
@@ -146,7 +142,7 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
                 key={`${block.item.id}-${+block.start}`}
               >
                 <span className="w-28 shrink-0 text-muted-foreground tabular-nums">
-                  {clock.format(block.start)} – {clock.format(block.end)}
+                  {formatClock(block.start)} – {formatClock(block.end)}
                 </span>
                 <span className="min-w-0 flex-1 truncate">
                   {block.kind === 'study' && (
@@ -198,7 +194,7 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
             {busy
               .map(
                 (slot) =>
-                  `${slot.label} ${clock.format(slot.start)}–${clock.format(slot.end)}`,
+                  `${slot.label} ${formatClock(slot.start)}–${formatClock(slot.end)}`,
               )
               .join(', ')}
             .

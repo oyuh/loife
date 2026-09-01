@@ -20,13 +20,9 @@ import {
   CommandShortcut,
 } from '#/components/ui/command'
 import { Kbd } from '#/components/ui/kbd'
+import { formatMonthDay } from '#/lib/datetime'
 import { itemsQuery, journalQuery } from '#/lib/queries'
 import { FILTER_HINTS, type Searchable, search } from '#/lib/search'
-
-const dayFormat = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-})
 
 export function CommandPalette({
   onAddItem,
@@ -152,7 +148,7 @@ export function CommandPalette({
                     <CommandShortcut>
                       {[
                         result.courseCode,
-                        result.date ? dayFormat.format(result.date) : null,
+                        result.date ? formatMonthDay(result.date) : null,
                         result.priority !== 3 ? `P${result.priority}` : null,
                       ]
                         .filter(Boolean)
@@ -176,7 +172,7 @@ export function CommandPalette({
                       {result.label || 'Untitled day'}
                     </span>
                     <CommandShortcut>
-                      {result.date ? dayFormat.format(result.date) : ''}
+                      {result.date ? formatMonthDay(result.date) : ''}
                     </CommandShortcut>
                   </CommandItem>
                 ))}

@@ -18,6 +18,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AddItemDialog } from '#/components/add-item-dialog'
 import { Arrangeable, ArrangeableSection } from '#/components/arrangeable'
+import { ClockText } from '#/components/date-time'
 import { DayPlan } from '#/components/day-plan'
 import { InlineLog } from '#/components/inline-log'
 import { ItemDetail } from '#/components/item-detail'
@@ -58,6 +59,7 @@ import {
   ItemTitle,
 } from '#/components/ui/item'
 import { Switch } from '#/components/ui/switch'
+import { formatDayLong } from '#/lib/datetime'
 import { type MoveTarget, moveTargetDate } from '#/lib/move-targets'
 import { itemsQuery } from '#/lib/queries'
 import {
@@ -87,16 +89,6 @@ import {
 export const Route = createFileRoute('/_app/')({
   component: Today,
   loader: ({ context }) => context.queryClient.ensureQueryData(itemsQuery),
-})
-
-const dayFormat = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-})
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  hour: 'numeric',
-  minute: '2-digit',
 })
 
 /** 1 and 2 are urgent, 4 and 5 are deferred, 3 says nothing worth a pill. */
@@ -337,7 +329,7 @@ function Today() {
                                 )}
                                 <span className="capitalize">{item.type}</span>
                                 {item.dueAt && !item.allDay && (
-                                  <span>{timeFormat.format(item.dueAt)}</span>
+                                  <ClockText value={item.dueAt} />
                                 )}
                                 {item.location && <span>{item.location}</span>}
                               </ItemDescription>
@@ -402,7 +394,7 @@ function Today() {
         <div>
           <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
           <p className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
-            {dayFormat.format(now)}
+            {formatDayLong(now)}
             {late > 0 && (
               <span className="text-destructive">{late} overdue</span>
             )}

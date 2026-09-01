@@ -20,16 +20,10 @@ import {
 } from '#/components/ui/drawer'
 import { Field, FieldGroup, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
+import { formatKeyDayLong } from '#/lib/datetime'
 import { journalQuery } from '#/lib/queries'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { getLogEntry, updateLogEntry } from '#/server/journal'
-
-const dayFormat = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-})
 
 export function JournalDialog({
   entryId,
@@ -74,9 +68,7 @@ export function JournalDialog({
       ),
   })
 
-  const heading = entry
-    ? dayFormat.format(new Date(`${entry.date}T00:00:00`))
-    : 'Loading…'
+  const heading = entry ? formatKeyDayLong(entry.date) : 'Loading…'
 
   const content = (
     <form
