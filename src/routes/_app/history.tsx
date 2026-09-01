@@ -20,7 +20,7 @@ import {
   ItemTitle,
 } from '#/components/ui/item'
 import { itemsQuery } from '#/lib/queries'
-import { search } from '#/lib/search'
+import { FILTER_HINTS, search } from '#/lib/search'
 import { listRecentActivity } from '#/server/items'
 
 export const Route = createFileRoute('/_app/history')({
@@ -73,6 +73,10 @@ function History() {
     priority: item.priority,
     status: item.status,
     hasAttachment: item.attachmentCount > 0,
+    location: item.location,
+    completedAt: item.completedAt,
+    actualMinutes: item.actualMinutes,
+    estimatedMinutes: item.estimatedMinutes,
     item,
   }))
 
@@ -88,19 +92,40 @@ function History() {
     <div className="mx-auto w-full max-w-2xl px-5 py-8">
       <header className="mb-6">
         <h1 className="font-semibold text-2xl tracking-tight">History</h1>
-        <p className="mt-1 text-muted-foreground text-sm">
-          Everything you have ever added, what happened to it, and how long it
-          took.
-        </p>
       </header>
 
       <Input
         aria-label="Filter history"
-        className="mb-6 h-11"
+        className="mb-2 h-11"
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Filter, with the same syntax as search"
+        placeholder="essay in:cs2340 took:>60 doneafter:-7d"
         value={query}
       />
+
+      {/*
+        The command palette lists these as selectable rows. There is no list to
+        put them in here, so they are chips that append themselves to whatever
+        is already typed.
+      */}
+      <div className="mb-6 flex flex-wrap gap-1.5">
+        {FILTER_HINTS.map((hint) => (
+          <button
+            className="rounded-md bg-muted px-2 py-1 font-mono text-muted-foreground text-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+            key={hint.token}
+            onClick={() =>
+              setQuery((current) =>
+                current.trim()
+                  ? `${current.trim()} ${hint.token} `
+                  : `${hint.token} `,
+              )
+            }
+            title={hint.describes}
+            type="button"
+          >
+            {hint.token}
+          </button>
+        ))}
+      </div>
 
       {shown.length === 0 ? (
         <Empty className="border border-dashed">

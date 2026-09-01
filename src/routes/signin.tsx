@@ -1,4 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { buttonVariants } from '#/components/ui/button'
+import { Wordmark } from '#/components/wordmark'
 import { fetchCurrentUser } from '#/server/auth'
 
 export const Route = createFileRoute('/signin')({
@@ -12,7 +14,9 @@ function SignIn() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-8 px-5 py-12">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">loife</h1>
+        <h1>
+          <Wordmark className="text-3xl" />
+        </h1>
         <p className="text-sm text-muted-foreground">
           Courses, assignments, and a daily journal.
         </p>
@@ -20,7 +24,7 @@ function SignIn() {
 
       <a
         href="/api/auth/github"
-        className="flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 font-medium text-primary-foreground"
+        className={buttonVariants({ className: 'min-h-11 w-full' })}
       >
         Sign in with GitHub
       </a>

@@ -119,7 +119,7 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
 
   return (
     <Collapsible
-      className="mb-8 rounded-lg border border-border"
+      className="rounded-lg border border-border"
       onOpenChange={setOpen}
       open={open}
     >

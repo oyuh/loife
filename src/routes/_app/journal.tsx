@@ -101,10 +101,6 @@ function Journal() {
     <div className="mx-auto w-full max-w-2xl px-5 py-8">
       <header className="mb-8">
         <h1 className="font-semibold text-2xl tracking-tight">Journal</h1>
-        <p className="mt-1 text-muted-foreground text-sm">
-          A page per day. Today is always ready to write in, and you can pick
-          any other date, ahead or behind.
-        </p>
       </header>
 
       <div className="mb-8 flex flex-wrap items-end gap-2">

@@ -14,9 +14,10 @@ import {
   Trash2,
   Undo2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AddItemDialog } from '#/components/add-item-dialog'
+import { Arrangeable, ArrangeableSection } from '#/components/arrangeable'
 import { DayPlan } from '#/components/day-plan'
 import { InlineLog } from '#/components/inline-log'
 import { ItemDetail } from '#/components/item-detail'
@@ -56,8 +57,16 @@ import {
   ItemGroup,
   ItemTitle,
 } from '#/components/ui/item'
+import { Switch } from '#/components/ui/switch'
 import { type MoveTarget, moveTargetDate } from '#/lib/move-targets'
 import { itemsQuery } from '#/lib/queries'
+import {
+  readOrder,
+  reorder,
+  SECTION_ORDER,
+  type SectionId,
+  writeOrder,
+} from '#/lib/today-layout'
 import {
   BUCKET_COLORS,
   DEFAULT_PRIORITY,
@@ -98,6 +107,9 @@ const PRIORITY_INDICATOR: Record<number, 'error' | 'warning' | 'success'> = {
   5: 'success',
 }
 
+/** One movable block on the Today page. */
+type Section = { id: SectionId; label: string; node: ReactNode }
+
 function Today() {
   const { data: items } = useSuspenseQuery(itemsQuery)
   const queryClient = useQueryClient()
@@ -109,6 +121,24 @@ function Today() {
   )
   const [confirming, setConfirming] = useState<ItemRow | null>(null)
   const [viewing, setViewing] = useState<ItemRow | null>(null)
+  const [arranging, setArranging] = useState(false)
+  const [order, setOrder] = useState<SectionId[]>(() => [...SECTION_ORDER])
+
+  /*
+   * The saved order lives in localStorage, which does not exist while this
+   * page is rendering on the server. So the markup ships in the default order
+   * and a custom one lands on the first client render instead — a reordered
+   * page moves once, just after it paints.
+   */
+  useEffect(() => setOrder(readOrder()), [])
+
+  const moveSection = (from: SectionId, to: SectionId) => {
+    // Reordering the whole list rather than the visible part of it, so a
+    // section that is empty today keeps its place for the day it is not.
+    const next = reorder(order, from, to)
+    setOrder(next)
+    writeOrder(next)
+  }
 
   const toggleSection = (bucket: string) =>
     setCollapsed((previous) => {
@@ -206,22 +236,226 @@ function Today() {
   const groups = groupByUrgency(items, now, prefs?.hideCompletedAfterMinutes)
   const late = overdueCount(items, now)
 
+  const buckets = new Map(
+    groups.map((group) => [
+      group.bucket,
+      {
+        label: group.label,
+        node: (
+          <Collapsible
+            onOpenChange={() => toggleSection(group.bucket)}
+            open={!collapsed.has(group.bucket)}
+          >
+            <CollapsibleTrigger className="group mb-1 flex min-h-11 w-full items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+              <ChevronRight
+                aria-hidden="true"
+                className="size-3 transition-transform group-data-[state=open]:rotate-90"
+              />
+              <span
+                className="size-1.5 rounded-full"
+                style={{ backgroundColor: BUCKET_COLORS[group.bucket] }}
+              />
+              {group.label}
+              <span className="ml-auto tabular-nums">{group.items.length}</span>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              <ItemGroup>
+                {group.items.map((item) => {
+                  const done = item.status === 'done'
+                  const actions = actionsFor(item)
+
+                  return (
+                    <SwipeRow
+                      actions={
+                        <>
+                          <SwipeAction
+                            label={actions.done ? 'Reopen' : 'Mark done'}
+                            onClick={actions.onToggle}
+                          >
+                            {actions.done ? <Undo2 /> : <Check />}
+                          </SwipeAction>
+                          <SwipeAction label="Edit" onClick={actions.onEdit}>
+                            <Pencil />
+                          </SwipeAction>
+                          <SwipeAction
+                            destructive
+                            label="Delete"
+                            onClick={actions.onDelete}
+                          >
+                            <Trash2 />
+                          </SwipeAction>
+                        </>
+                      }
+                      count={3}
+                      key={item.id}
+                    >
+                      <RowContextMenu actions={actions}>
+                        <Item
+                          className="gap-3 rounded-none border-b-border px-0 py-3 last:border-b-transparent"
+                          key={item.id}
+                          size="sm"
+                        >
+                          {/* Padding rather than a bigger box, so the tap target
+                        clears 44px while the control stays small. */}
+                          <span className="-m-2 shrink-0 p-2">
+                            <Checkbox
+                              aria-label={`Mark ${item.name} done`}
+                              checked={done}
+                              className="size-5"
+                              onCheckedChange={(checked) =>
+                                toggle.mutate({
+                                  id: item.id,
+                                  status: checked === true ? 'done' : 'todo',
+                                })
+                              }
+                            />
+                          </span>
+
+                          {/* The whole row toggles, so a 20px box is never the only
+                        target. */}
+                          <button
+                            aria-label={`Open ${item.name}`}
+                            className="flex min-w-0 flex-1 select-none text-left"
+                            onClick={() => setViewing(item)}
+                            type="button"
+                          >
+                            <ItemContent className="gap-0.5">
+                              <ItemTitle
+                                className={cn(
+                                  'w-full truncate',
+                                  done && 'text-muted-foreground line-through',
+                                )}
+                              >
+                                {item.name}
+                              </ItemTitle>
+                              <ItemDescription className="flex flex-wrap items-center gap-x-2">
+                                {item.course && (
+                                  <span>
+                                    {item.course.code ?? item.course.name}
+                                  </span>
+                                )}
+                                <span className="capitalize">{item.type}</span>
+                                {item.dueAt && !item.allDay && (
+                                  <span>{timeFormat.format(item.dueAt)}</span>
+                                )}
+                                {item.location && <span>{item.location}</span>}
+                              </ItemDescription>
+                            </ItemContent>
+                          </button>
+
+                          {item.attachmentCount > 0 && (
+                            <Button
+                              aria-label={`Files on ${item.name}`}
+                              className="min-h-10 shrink-0 gap-1 px-2 text-muted-foreground text-xs"
+                              onClick={() => setViewing(item)}
+                              size="sm"
+                              type="button"
+                              variant="ghost"
+                            >
+                              <Paperclip />
+                              {item.attachmentCount}
+                            </Button>
+                          )}
+
+                          {/* P3 is the default and says nothing, so only the
+                        deviations get a pill. */}
+                          {!done && item.priority !== DEFAULT_PRIORITY && (
+                            <ItemActions>
+                              <Pill title={PRIORITY_LABELS[item.priority]}>
+                                <PillIndicator
+                                  variant={PRIORITY_INDICATOR[item.priority]}
+                                />
+                                P{item.priority}
+                              </Pill>
+                            </ItemActions>
+                          )}
+                          <RowMenuButton actions={actions} label={item.name} />
+                        </Item>
+                      </RowContextMenu>
+                    </SwipeRow>
+                  )
+                })}
+              </ItemGroup>
+            </CollapsibleContent>
+          </Collapsible>
+        ),
+      },
+    ]),
+  )
+
+  /** The arranged order, minus the buckets that have nothing in them today. */
+  const sections = order.flatMap((id): Section[] => {
+    if (id === 'timer') {
+      return [{ id, label: 'the study timer', node: <StudyTimer /> }]
+    }
+    if (id === 'plan') {
+      return [{ id, label: 'plan my day', node: <DayPlan items={items} /> }]
+    }
+    const bucket = buckets.get(id)
+    return bucket ? [{ id, ...bucket }] : []
+  })
+
   return (
     <div className="mx-auto w-full max-w-2xl px-5 pt-8 pb-28">
-      <header className="mb-6">
-        <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
-        <p className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
-          {dayFormat.format(now)}
-          {late > 0 && <span className="text-destructive">{late} overdue</span>}
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
+          <p className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
+            {dayFormat.format(now)}
+            {late > 0 && (
+              <span className="text-destructive">{late} overdue</span>
+            )}
+          </p>
+        </div>
+
+        {/*
+          Arranging is a mode you turn on, move something, and turn off again,
+          so the switch lives here rather than in settings — you cannot see
+          what you are rearranging from another page.
+        */}
+        <div className="flex shrink-0 items-center gap-2 pt-1">
+          <label
+            className="cursor-pointer text-muted-foreground text-xs uppercase tracking-wide"
+            htmlFor="arrange"
+          >
+            Arrange
+          </label>
+          <Switch
+            checked={arranging}
+            id="arrange"
+            onCheckedChange={setArranging}
+          />
+        </div>
       </header>
 
-      <StudyTimer />
+      {/*
+        Every section is the same kind of thing to this list: an id, a name for
+        the drag handle's label, and something to render. Buckets with nothing
+        in them are simply absent, which is why the order is stored separately
+        rather than being read back off what is on screen.
+      */}
+      <Arrangeable
+        arranging={arranging}
+        onMove={moveSection}
+        order={sections.map((section) => section.id)}
+      >
+        <div className="space-y-8">
+          {sections.map((section) => (
+            <ArrangeableSection
+              arranging={arranging}
+              id={section.id}
+              key={section.id}
+              label={section.label}
+            >
+              {section.node}
+            </ArrangeableSection>
+          ))}
+        </div>
+      </Arrangeable>
 
-      <DayPlan items={items} />
-
-      {groups.length === 0 ? (
-        <Empty className="border border-dashed">
+      {groups.length === 0 && (
+        <Empty className="mt-8 border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <CalendarCheck />
@@ -232,159 +466,6 @@ function Today() {
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : (
-        <div className="space-y-8">
-          {groups.map((group) => (
-            <Collapsible
-              key={group.bucket}
-              onOpenChange={() => toggleSection(group.bucket)}
-              open={!collapsed.has(group.bucket)}
-            >
-              <CollapsibleTrigger className="group mb-1 flex min-h-11 w-full items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                <ChevronRight
-                  aria-hidden="true"
-                  className="size-3 transition-transform group-data-[state=open]:rotate-90"
-                />
-                <span
-                  className="size-1.5 rounded-full"
-                  style={{ backgroundColor: BUCKET_COLORS[group.bucket] }}
-                />
-                {group.label}
-                <span className="ml-auto tabular-nums">
-                  {group.items.length}
-                </span>
-              </CollapsibleTrigger>
-
-              <CollapsibleContent>
-                <ItemGroup>
-                  {group.items.map((item) => {
-                    const done = item.status === 'done'
-                    const actions = actionsFor(item)
-
-                    return (
-                      <SwipeRow
-                        actions={
-                          <>
-                            <SwipeAction
-                              label={actions.done ? 'Reopen' : 'Mark done'}
-                              onClick={actions.onToggle}
-                            >
-                              {actions.done ? <Undo2 /> : <Check />}
-                            </SwipeAction>
-                            <SwipeAction label="Edit" onClick={actions.onEdit}>
-                              <Pencil />
-                            </SwipeAction>
-                            <SwipeAction
-                              destructive
-                              label="Delete"
-                              onClick={actions.onDelete}
-                            >
-                              <Trash2 />
-                            </SwipeAction>
-                          </>
-                        }
-                        count={3}
-                        key={item.id}
-                      >
-                        <RowContextMenu actions={actions}>
-                          <Item
-                            className="gap-3 rounded-none border-b-border px-0 py-3 last:border-b-transparent"
-                            key={item.id}
-                            size="sm"
-                          >
-                            {/* Padding rather than a bigger box, so the tap target
-                          clears 44px while the control stays small. */}
-                            <span className="-m-2 shrink-0 p-2">
-                              <Checkbox
-                                aria-label={`Mark ${item.name} done`}
-                                checked={done}
-                                className="size-5"
-                                onCheckedChange={(checked) =>
-                                  toggle.mutate({
-                                    id: item.id,
-                                    status: checked === true ? 'done' : 'todo',
-                                  })
-                                }
-                              />
-                            </span>
-
-                            {/* The whole row toggles, so a 20px box is never the only
-                          target. */}
-                            <button
-                              aria-label={`Open ${item.name}`}
-                              className="flex min-w-0 flex-1 select-none text-left"
-                              onClick={() => setViewing(item)}
-                              type="button"
-                            >
-                              <ItemContent className="gap-0.5">
-                                <ItemTitle
-                                  className={cn(
-                                    'w-full truncate',
-                                    done &&
-                                      'text-muted-foreground line-through',
-                                  )}
-                                >
-                                  {item.name}
-                                </ItemTitle>
-                                <ItemDescription className="flex flex-wrap items-center gap-x-2">
-                                  {item.course && (
-                                    <span>
-                                      {item.course.code ?? item.course.name}
-                                    </span>
-                                  )}
-                                  <span className="capitalize">
-                                    {item.type}
-                                  </span>
-                                  {item.dueAt && !item.allDay && (
-                                    <span>{timeFormat.format(item.dueAt)}</span>
-                                  )}
-                                  {item.location && (
-                                    <span>{item.location}</span>
-                                  )}
-                                </ItemDescription>
-                              </ItemContent>
-                            </button>
-
-                            {item.attachmentCount > 0 && (
-                              <Button
-                                aria-label={`Files on ${item.name}`}
-                                className="min-h-10 shrink-0 gap-1 px-2 text-muted-foreground text-xs"
-                                onClick={() => setViewing(item)}
-                                size="sm"
-                                type="button"
-                                variant="ghost"
-                              >
-                                <Paperclip />
-                                {item.attachmentCount}
-                              </Button>
-                            )}
-
-                            {/* P3 is the default and says nothing, so only the
-                          deviations get a pill. */}
-                            {!done && item.priority !== DEFAULT_PRIORITY && (
-                              <ItemActions>
-                                <Pill title={PRIORITY_LABELS[item.priority]}>
-                                  <PillIndicator
-                                    variant={PRIORITY_INDICATOR[item.priority]}
-                                  />
-                                  P{item.priority}
-                                </Pill>
-                              </ItemActions>
-                            )}
-                            <RowMenuButton
-                              actions={actions}
-                              label={item.name}
-                            />
-                          </Item>
-                        </RowContextMenu>
-                      </SwipeRow>
-                    )
-                  })}
-                </ItemGroup>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </div>
       )}
 
       <InlineLog />
@@ -406,7 +487,8 @@ function Today() {
           <AlertDialogFooter>
             <AlertDialogCancel className="min-h-11">Keep it</AlertDialogCancel>
             <AlertDialogAction
-              className="min-h-11 bg-destructive text-background hover:bg-destructive/90"
+              className="min-h-11"
+              variant="destructive"
               disabled={remove.isPending}
               onClick={(event) => {
                 event.preventDefault()

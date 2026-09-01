@@ -8,6 +8,7 @@ import {
   Settings,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { Wordmark } from '#/components/wordmark'
 import { cn } from '#/lib/utils'
 
 /**
@@ -48,9 +49,7 @@ export function AppShell({
                    md:sticky md:top-0 md:h-dvh md:w-56 md:shrink-0 md:flex-col
                    md:gap-1 md:border-t-0 md:border-r md:bg-card md:p-3"
       >
-        <p className="hidden px-3 pt-1 pb-4 font-semibold text-sm tracking-tight md:block">
-          loife
-        </p>
+        <Wordmark className="hidden px-3 pt-1 pb-4 text-base md:block" />
 
         <Link
           activeOptions={{ exact: true }}
@@ -116,8 +115,15 @@ export function AppShell({
         </form>
       </nav>
 
-      {/* Clears the fixed nav plus its safe-area padding on phones. */}
-      <main className="min-w-0 flex-1 pb-28 md:pb-0">{children}</main>
+      {/*
+        Bottom clears the fixed nav plus its safe-area padding on phones. Top
+        clears the status bar, which the installed app draws its own background
+        under — the head asks iOS for a translucent one so the dark ground runs
+        to the top edge instead of stopping at a black bar.
+      */}
+      <main className="min-w-0 flex-1 pt-[env(safe-area-inset-top)] pb-28 md:pt-0 md:pb-0">
+        {children}
+      </main>
     </div>
   )
 }

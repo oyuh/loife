@@ -64,9 +64,6 @@ function Courses() {
       <header className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-semibold text-2xl tracking-tight">Courses</h1>
-          <p className="mt-1 text-muted-foreground text-sm">
-            Meeting times sync to your calendar as recurring events.
-          </p>
         </div>
         <Button className="min-h-11 shrink-0" onClick={() => openFor(null)}>
           <Plus />

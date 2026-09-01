@@ -166,7 +166,7 @@ function Column<T extends string | number>({
     <fieldset className="min-w-0 flex-1">
       <legend className="sr-only">{label}</legend>
       <div
-        className="relative overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative overflow-y-auto"
         onScroll={() => {
           if (settling.current) window.clearTimeout(settling.current)
           settling.current = window.setTimeout(() => {

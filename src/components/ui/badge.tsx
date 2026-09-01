@@ -12,8 +12,13 @@ const badgeVariants = cva(
         default: 'bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
         secondary:
           'bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
+        /*
+         * Near-black label, not white. --destructive is now light enough that
+         * white on it measures 2.86:1, and the fill is opaque so the badge does
+         * not pick up whatever it happens to be sitting on.
+         */
         destructive:
-          'bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90',
+          'bg-destructive text-primary-foreground focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90',
         outline:
           'border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
         ghost: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground',

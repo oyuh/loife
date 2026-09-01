@@ -192,7 +192,8 @@ export function AttachmentsPanel(owner: Owner) {
           <AlertDialogFooter>
             <AlertDialogCancel className="min-h-11">Keep it</AlertDialogCancel>
             <AlertDialogAction
-              className="min-h-11 bg-destructive text-background hover:bg-destructive/90"
+              className="min-h-11"
+              variant="destructive"
               disabled={remove.isPending}
               onClick={(event) => {
                 event.preventDefault()

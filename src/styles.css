@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Geist+Mono:wght@400&display=swap');
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 @import 'tw-animate-css';
@@ -6,13 +6,17 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Kibo's own theme tokens, copied verbatim from its global.css so every
- * component it ships renders the way it does on kibo-ui.com. This app is dark
- * only, so kibo's `.dark` values sit on both selectors and its light palette
- * is not carried.
+ * Theme tokens ported from Bluloco Dark Italic, the VS Code theme this is read
+ * against all day. The greys carry that theme's blue cast rather than being
+ * neutral, which is the whole point: a flat monochrome dark reads as unfinished
+ * next to it. Each colour notes the VS Code key it came from so a future tweak
+ * can be checked against the source theme rather than guessed at.
  *
- * Note the translucent borders. Kibo uses a white overlay rather than a solid
- * grey, which is most of why its surfaces read softer.
+ * Contrast of every pair here is asserted by scripts/check-contrast.ts.
+ *
+ * Borders stay a translucent white overlay rather than a solid grey. That is
+ * kibo's trick and it is most of why these surfaces read soft; a solid line
+ * over a blue-cast ground goes muddy.
  */
 :root,
 .dark {
@@ -26,50 +30,78 @@
    */
   color-scheme: dark;
 
-  --radius: 0.625rem;
+  /* Was 0.625rem. Cut 35%: everything sits tighter and less bubbly. */
+  --radius: 0.40625rem;
 
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --background: #22252a; /* sideBar.background */
+  --foreground: #c5cdd9; /* editor.foreground, lifted — chrome needs more
+                            contrast than syntax does */
+  --card: #282c34; /* editor.background */
+  --card-foreground: #c5cdd9;
+  --popover: #282c34;
+  --popover-foreground: #c5cdd9;
+
   /*
-   * Kibo ships 0.5808 here. White on that measures 4.44:1, just under the
-   * 4.5:1 floor for button labels, so the lightness drops by 0.01 to reach
-   * 4.60:1. The difference is not visible next to kibo's own blue.
+   * Bluloco's orange. Deliberately not the theme's own button blue (#2b72c9).
+   *
+   * Far too light to carry white text — white on it measures 2.18:1 — so the
+   * label is near-black, which measures 7.66:1 against the darkest point of the
+   * button gradient.
    */
-  --primary: oklch(0.57 0.245 262.881);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --primary: #ff936a; /* the orange Bluloco sets numbers and constants in */
+  --primary-foreground: #1b1e24;
+
+  --secondary: #2d333d; /* activityBar.background */
+  --secondary-foreground: #c5cdd9;
+  --muted: #2d333d;
+  --muted-foreground: #949db2; /* editorLineNumber.foreground, lifted to clear
+                                  4.5:1 on both --background and --card */
+  --accent: #37404b; /* statusBar.background — one step above --secondary so a
+                        hover is visible on top of it */
+  --accent-foreground: #e2e7ee;
+
+  /*
+   * The softer of Bluloco's two reds. The hard one (#fc2e51) only reaches
+   * 4.13:1 as text on --background, and this token is used as text as often as
+   * it is used as a fill.
+   */
+  --destructive: #ff637f; /* terminal.ansiBrightRed */
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: #ff936a;
 
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  /*
+   * The three faces of an emphasis button, following kumo's recipe: a fill
+   * lifted towards white, a gradient that runs from a smaller lift down to the
+   * flat colour, and an edge pulled towards black for the ring. The lift also
+   * serves as the 1px inset highlight along the top.
+   */
+  --primary-lift: color-mix(in oklch, var(--primary), white 30%);
+  --primary-face: color-mix(in oklch, var(--primary), white 15%);
+  --primary-edge: color-mix(in oklch, var(--primary), black 10%);
+  --destructive-lift: color-mix(in oklch, var(--destructive), white 30%);
+  --destructive-face: color-mix(in oklch, var(--destructive), white 15%);
+  --destructive-edge: color-mix(in oklch, var(--destructive), black 10%);
 
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --chart-1: #ff936a; /* the orange, so a first series matches --primary */
+  --chart-2: #3fc56a; /* terminal.ansiBrightGreen */
+  --chart-3: #f9c858; /* terminal.ansiBrightYellow */
+  --chart-4: #9f7efe; /* terminal.ansiMagenta, Bluloco's purple */
+  --chart-5: #ff78f8; /* terminal.ansiBrightMagenta */
+
+  --sidebar: #22252a;
+  --sidebar-foreground: #c5cdd9;
+  --sidebar-primary: #ff936a;
+  --sidebar-primary-foreground: #1b1e24;
+  --sidebar-accent: #2d333d;
+  --sidebar-accent-foreground: #c5cdd9;
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: #ff936a;
 }
 
 @theme inline {
-  --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: Outfit, ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
 
   --color-background: var(--background);
@@ -136,6 +168,26 @@ input[type='time'] {
   /* iOS centres the value, which reads as misaligned next to every other
      field in the form. */
   text-align: left;
+}
+
+/*
+ * No scrollbars anywhere. Everything still scrolls — wheel, trackpad, touch,
+ * keyboard and scrollIntoView are all untouched — the bar is just not drawn.
+ *
+ * On `*` rather than on the few known scroll containers, because radix and
+ * vaul both mount their own scrolling elements into a portal at the end of
+ * body, and those never pass through our classnames.
+ *
+ * Nothing in the app scrolls horizontally, so this hides no content that is
+ * not reachable by scrolling down. Add a visible affordance before that
+ * changes.
+ */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 html,

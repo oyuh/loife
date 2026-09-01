@@ -77,6 +77,10 @@ export function CommandPalette({
       priority: item.priority,
       status: item.status,
       hasAttachment: item.attachmentCount > 0,
+      location: item.location,
+      completedAt: item.completedAt,
+      actualMinutes: item.actualMinutes,
+      estimatedMinutes: item.estimatedMinutes,
     }))
 
     const fromDays = days.map((day) => ({
@@ -91,6 +95,10 @@ export function CommandPalette({
       priority: null,
       status: null,
       hasAttachment: false,
+      location: null,
+      completedAt: null,
+      actualMinutes: null,
+      estimatedMinutes: null,
     }))
 
     return [...fromItems, ...fromDays]
