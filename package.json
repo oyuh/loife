@@ -30,7 +30,8 @@
     "check:time": "node --experimental-strip-types scripts/check-time.ts",
     "check:contrast": "node --experimental-strip-types scripts/check-contrast.ts",
     "check:layout": "node --experimental-strip-types scripts/check-layout.ts",
-    "check:datetime": "node --experimental-strip-types scripts/check-datetime.ts"
+    "check:datetime": "node --experimental-strip-types scripts/check-datetime.ts",
+    "check:schedule": "node --experimental-strip-types scripts/check-schedule.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",

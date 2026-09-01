@@ -20,15 +20,30 @@ const day = (offset, hour = 23, minute = 59) => {
   return d
 }
 
+/** A term running either side of today, as `2026-09-15`. */
+const dateOnly = (offsetDays) => day(offsetDays).toISOString().slice(0, 10)
+const termStart = dateOnly(-45)
+const termEnd = dateOnly(75)
+
 try {
   await sql`truncate attachments, log_entries, items, courses restart identity cascade`
 
+  // Term dates and an instructor on every row, so a seeded database exercises
+  // the courses calendar and the mailto link rather than leaving both blank.
+  // Two courses share an instructor, which is what the instructor combobox is
+  // for.
   const [systems, calc, writing] = await sql`
-    insert into courses (name, code, color, term, days, start_time, end_time, location)
+    insert into courses (
+      name, code, color, term, days, start_time, end_time, location,
+      term_start, term_end, instructor, instructor_email
+    )
     values
-      ('Computer Systems', 'CS 2340', '#3b82f6', 'Fall 2026', '{1,3,5}', '10:00', '10:50', 'ECSS 2.410'),
-      ('Calculus II', 'MATH 2414', '#22c55e', 'Fall 2026', '{2,4}', '13:00', '14:15', 'FN 2.102'),
-      ('Rhetoric', 'RHET 1302', '#a855f7', 'Fall 2026', '{2,4}', '16:00', '17:15', 'JO 3.516')
+      ('Computer Systems', 'CS 2340', '#3b82f6', 'Fall 2026', '{1,3,5}', '10:00', '10:50', 'ECSS 2.410',
+       ${termStart}, ${termEnd}, 'Dr Nguyen', 'nguyen@example.edu'),
+      ('Calculus II', 'MATH 2414', '#22c55e', 'Fall 2026', '{2,4}', '13:00', '14:15', 'FN 2.102',
+       ${termStart}, ${termEnd}, 'Dr Okonkwo', 'okonkwo@example.edu'),
+      ('Rhetoric', 'RHET 1302', '#a855f7', 'Fall 2026', '{2,4}', '16:00', '17:15', 'JO 3.516',
+       ${termStart}, ${termEnd}, 'Dr Nguyen', 'nguyen@example.edu')
     returning id`
 
   await sql`
