@@ -177,8 +177,9 @@ function Column<T extends string | number>({
             const landed = options[index]
             if (landed === undefined) return
 
-            // Centre it here rather than trusting snapping to finish the job,
-            // which is what makes proximity feel as tidy as mandatory looks.
+            // Centre it here, since there is no CSS snapping left to do it.
+            // Smooth is safe on this path: a drag has already stopped, so the
+            // rows it glides past cannot be read back as another choice.
             node.scrollTo({ top: index * ROW, behavior: 'smooth' })
             if (landed !== value) onSelect(landed)
           }, 120)
