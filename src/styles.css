@@ -16,6 +16,16 @@
  */
 :root,
 .dark {
+  /*
+   * Native date and time controls take their own colours from this, not from
+   * our tokens. Without it the browser draws a light calendar glyph on a light
+   * ground inside a dark field, so the control reads as an empty box rather
+   * than a date picker, and the popup panel opens white.
+   *
+   * Unconditional because this app is dark only.
+   */
+  color-scheme: dark;
+
   --radius: 0.625rem;
 
   --background: oklch(0.145 0 0);
@@ -108,6 +118,24 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/*
+ * Date and time fields size themselves to their own contents, and WebKit puts
+ * a second intrinsic width on the value area inside them. Two of them in a
+ * grid then refuse to shrink into their cells and overlap on a phone. Both
+ * minimums have to go for `w-full` on the field to mean anything.
+ */
+input[type='date'],
+input[type='time'] {
+  min-width: 0;
+}
+
+::-webkit-date-and-time-value {
+  min-width: 0;
+  /* iOS centres the value, which reads as misaligned next to every other
+     field in the form. */
+  text-align: left;
 }
 
 html,

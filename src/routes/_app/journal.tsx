@@ -8,6 +8,7 @@ import { Check, PencilLine } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { AttachmentsList } from '#/components/attachments-list'
 import { AttachmentsPanel } from '#/components/attachments-panel'
+import { DateField } from '#/components/date-field'
 import { Pill } from '#/components/kibo-ui/pill'
 import { Markdown } from '#/components/markdown'
 import { Button } from '#/components/ui/button'
@@ -107,15 +108,16 @@ function Journal() {
       </header>
 
       <div className="mb-8 flex flex-wrap items-end gap-2">
-        <Field className="min-w-0 flex-1">
+        {/* Capped, because a date needs about 200px and stretching one
+            across a whole phone screen looks like a mistake. */}
+        <Field className="min-w-0 max-w-52 flex-1">
           <FieldLabel htmlFor="journal-jump">
             {extraDate ? 'Showing one day' : 'Write on another day'}
           </FieldLabel>
-          <Input
-            className="h-11"
+          <DateField
             id="journal-jump"
-            onChange={(event) => setExtraDate(event.target.value)}
-            type="date"
+            label="Write on another day"
+            onChange={setExtraDate}
             value={extraDate}
           />
         </Field>

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Input } from '#/components/ui/input'
+import { TimeField } from '#/components/time-field'
 import {
   Select,
   SelectContent,
@@ -114,25 +114,27 @@ export function DayWindow() {
           <label className="text-muted-foreground text-xs" htmlFor="day-start">
             From
           </label>
-          <Input
-            className="h-11 w-32"
-            defaultValue={status.dayStart.slice(0, 5)}
-            id="day-start"
-            onBlur={(event) => save.mutate({ dayStart: event.target.value })}
-            type="time"
-          />
+          <div className="w-32">
+            <TimeField
+              id="day-start"
+              label="From"
+              onChange={(value) => save.mutate({ dayStart: value })}
+              value={status.dayStart.slice(0, 5)}
+            />
+          </div>
         </div>
         <div className="space-y-1.5">
           <label className="text-muted-foreground text-xs" htmlFor="day-end">
             Until
           </label>
-          <Input
-            className="h-11 w-32"
-            defaultValue={status.dayEnd.slice(0, 5)}
-            id="day-end"
-            onBlur={(event) => save.mutate({ dayEnd: event.target.value })}
-            type="time"
-          />
+          <div className="w-32">
+            <TimeField
+              id="day-end"
+              label="Until"
+              onChange={(value) => save.mutate({ dayEnd: value })}
+              value={status.dayEnd.slice(0, 5)}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -7,10 +7,54 @@ import * as React from 'react'
 import {
   type DayButton,
   DayPicker,
+  type DropdownProps,
   getDefaultClassNames,
 } from 'react-day-picker'
 import { Button, buttonVariants } from '#/components/ui/button.tsx'
 import { cn } from '#/lib/utils.ts'
+
+/**
+ * The month and year pickers in the caption.
+ *
+ * A real `<select>`, styled with our own tokens rather than hidden behind a
+ * fake label the way upstream does it. A Radix Select here would sit inside
+ * the Popover this calendar usually opens in, and the two focus scopes fight:
+ * the Select opens on pointer down and is dismissed again before the click
+ * lands, so the control looks dead.
+ *
+ * The native list is legible because `color-scheme` is set in styles.css,
+ * which is what made the browser's own chrome look out of place to begin with.
+ */
+function CalendarDropdown({ options = [], className, ...props }: DropdownProps) {
+  return (
+    <span className="relative inline-flex">
+      <select
+        className={cn(
+          'h-8 cursor-pointer appearance-none rounded-md border border-input',
+          'bg-popover py-0 pr-7 pl-2 font-medium text-sm outline-none',
+          'transition-colors hover:bg-accent hover:text-accent-foreground',
+          'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+          className,
+        )}
+        {...props}
+      >
+        {options.map((option) => (
+          <option
+            disabled={option.disabled}
+            key={option.value}
+            value={option.value}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDownIcon
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2 text-muted-foreground"
+      />
+    </span>
+  )
+}
 
 function Calendar({
   className,
@@ -70,14 +114,12 @@ function Calendar({
           'flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium',
           defaultClassNames.dropdowns,
         ),
-        dropdown_root: cn(
-          'relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50',
-          defaultClassNames.dropdown_root,
-        ),
-        dropdown: cn(
-          'absolute inset-0 bg-popover opacity-0',
-          defaultClassNames.dropdown,
-        ),
+        // Upstream hides a native select behind a fake label with
+        // `absolute inset-0 opacity-0`. CalendarDropdown below is a real
+        // Select that draws itself, so the overlay would leave an invisible
+        // control nobody can hover or click.
+        dropdown_root: cn('relative', defaultClassNames.dropdown_root),
+        dropdown: cn(defaultClassNames.dropdown),
         caption_label: cn(
           'font-medium select-none',
           captionLayout === 'label'
@@ -160,6 +202,7 @@ function Calendar({
           )
         },
         DayButton: CalendarDayButton,
+        Dropdown: CalendarDropdown,
         WeekNumber: ({ children, ...props }) => {
           return (
             <td {...props}>

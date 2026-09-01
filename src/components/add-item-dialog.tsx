@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { AttachmentsList, attachmentsKey } from '#/components/attachments-list'
 import { MarkdownField } from '#/components/markdown-field'
 import { StagedFiles } from '#/components/staged-files'
+import { TimeField } from '#/components/time-field'
 import { Button } from '#/components/ui/button'
 import { Calendar } from '#/components/ui/calendar'
 import {
@@ -366,13 +367,13 @@ function ItemForm({
             </PopoverContent>
           </Popover>
 
-          <Input
-            aria-label="Time, optional"
-            className="h-11 w-28 shrink-0"
-            onChange={(event) => set('time', event.target.value)}
-            type="time"
-            value={form.time}
-          />
+          <div className="w-28 shrink-0">
+            <TimeField
+              label="Time, optional"
+              onChange={(value) => set('time', value)}
+              value={form.time}
+            />
+          </div>
         </div>
       </Field>
 

@@ -2,7 +2,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
+import { DateField } from '#/components/date-field'
 import { MarkdownField } from '#/components/markdown-field'
+import { TimeField } from '#/components/time-field'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -325,22 +327,22 @@ function CourseForm({
           <div className="space-y-2">
             {form.meetingDates.map((row, index) => (
               <div className="flex gap-2" key={row.id}>
-                <Input
-                  aria-label={`One-off date ${index + 1}`}
-                  className="h-11 flex-1"
-                  onChange={(event) =>
-                    set(
-                      'meetingDates',
-                      form.meetingDates.map((existing) =>
-                        existing.id === row.id
-                          ? { ...existing, value: event.target.value }
-                          : existing,
-                      ),
-                    )
-                  }
-                  type="date"
-                  value={row.value}
-                />
+                <div className="min-w-0 flex-1">
+                  <DateField
+                    label={`One-off date ${index + 1}`}
+                    onChange={(value) =>
+                      set(
+                        'meetingDates',
+                        form.meetingDates.map((existing) =>
+                          existing.id === row.id
+                            ? { ...existing, value }
+                            : existing,
+                        ),
+                      )
+                    }
+                    value={row.value}
+                  />
+                </div>
                 <Button
                   aria-label={`Remove one-off date ${index + 1}`}
                   className="min-h-11"
@@ -378,24 +380,22 @@ function CourseForm({
           </div>
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field className="min-w-0">
             <FieldLabel htmlFor={startTimeId}>Starts</FieldLabel>
-            <Input
-              className="h-11"
+            <TimeField
               id={startTimeId}
-              onChange={(e) => set('startTime', e.target.value)}
-              type="time"
+              label="Starts"
+              onChange={(value) => set('startTime', value)}
               value={form.startTime}
             />
           </Field>
           <Field className="min-w-0">
             <FieldLabel htmlFor={endTimeId}>Ends</FieldLabel>
-            <Input
-              className="h-11"
+            <TimeField
               id={endTimeId}
-              onChange={(e) => set('endTime', e.target.value)}
-              type="time"
+              label="Ends"
+              onChange={(value) => set('endTime', value)}
               value={form.endTime}
             />
           </Field>
@@ -413,24 +413,22 @@ function CourseForm({
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field className="min-w-0">
             <FieldLabel htmlFor={startDateId}>Term starts</FieldLabel>
-            <Input
-              className="h-11"
+            <DateField
               id={startDateId}
-              onChange={(e) => set('termStart', e.target.value)}
-              type="date"
+              label="Term starts"
+              onChange={(value) => set('termStart', value)}
               value={form.termStart}
             />
           </Field>
           <Field className="min-w-0">
             <FieldLabel htmlFor={endDateId}>Term ends</FieldLabel>
-            <Input
-              className="h-11"
+            <DateField
               id={endDateId}
-              onChange={(e) => set('termEnd', e.target.value)}
-              type="date"
+              label="Term ends"
+              onChange={(value) => set('termEnd', value)}
               value={form.termEnd}
             />
           </Field>

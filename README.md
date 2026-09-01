@@ -111,9 +111,10 @@ That writes three courses and ten items spread across overdue, today, this week,
 ```bash
 pnpm db:check       # migrations apply and constraints reject bad rows
 pnpm check:dates    # Today view bucketing, ordering, and grace periods
+pnpm check:time     # reads a typed time six ways
 pnpm check          # Biome lint and format
 ```
 
 `db:check` runs against an in-process Postgres, so it needs neither Docker nor a database.
 
-The other check scripts are `check:plan`, `check:search`, and `check:syllabus`. None of them need a database either.
+The other check scripts are `check:plan`, `check:search`, `check:syllabus`, and `check:time`. None of them need a database either.
