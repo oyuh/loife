@@ -20,6 +20,8 @@ export interface CourseRow {
   meetingInterval: number
   meetingDates: string[] | null
   location: string | null
+  instructor: string | null
+  instructorEmail: string | null
   notes: string | null
   active: boolean
 }
@@ -42,6 +44,8 @@ export const listCourses = createServerFn({ method: 'GET' }).handler(
         meetingInterval: courses.meetingInterval,
         meetingDates: courses.meetingDates,
         location: courses.location,
+        instructor: courses.instructor,
+        instructorEmail: courses.instructorEmail,
         notes: courses.notes,
         active: courses.active,
       })
@@ -79,6 +83,18 @@ const courseInput = z.object({
   meetingInterval: z.number().int().min(1).max(8),
   meetingDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(60),
   location: z.string().max(200).nullable().transform(emptyToNull),
+  instructor: z.string().max(200).nullable().transform(emptyToNull),
+  // Blank is allowed and means "not recorded". Anything else has to look like
+  // an address, since the page turns it into a mailto link.
+  instructorEmail: z
+    .string()
+    .max(320)
+    .nullable()
+    .transform(emptyToNull)
+    .refine(
+      (value) => value === null || z.email().safeParse(value).success,
+      'That does not look like an email address',
+    ),
   notes: z.string().max(2000).nullable().transform(emptyToNull),
   active: z.boolean(),
 })

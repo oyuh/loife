@@ -58,6 +58,11 @@ export const courses = pgTable('courses', {
   // or used on their own when a course has no pattern at all.
   meetingDates: date('meeting_dates').array(),
   location: text('location'),
+  // Who teaches it, and where to reach them. Two columns rather than one
+  // "instructor" string, because the email is the part you actually act on and
+  // parsing it back out of "Dr Nguyen <n@utd.edu>" is a job nobody wants.
+  instructor: text('instructor'),
+  instructorEmail: text('instructor_email'),
   notes: text('notes'),
   active: boolean('active').notNull().default(true),
   googleEventId: text('google_event_id'),

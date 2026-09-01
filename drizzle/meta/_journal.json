@@ -50,6 +50,13 @@
       "when": 1788218099985,
       "tag": "0006_tiny_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788298065554,
+      "tag": "0007_wakeful_giant_man",
+      "breakpoints": true
     }
   ]
 }

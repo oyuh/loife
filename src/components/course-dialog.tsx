@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { DateField } from '#/components/date-field'
+import { InstructorField } from '#/components/instructor-field'
 import { MarkdownField } from '#/components/markdown-field'
 import { TimeField } from '#/components/time-field'
 import { Button } from '#/components/ui/button'
@@ -63,6 +64,8 @@ const EMPTY = {
   // Each row carries an id, since two blank dates would otherwise share a key.
   meetingDates: [] as { id: string; value: string }[],
   location: '',
+  instructor: '',
+  instructorEmail: '',
   notes: '',
   active: true,
 }
@@ -86,6 +89,8 @@ function fromCourse(course: CourseRow): Form {
       value,
     })),
     location: course.location ?? '',
+    instructor: course.instructor ?? '',
+    instructorEmail: course.instructorEmail ?? '',
     notes: course.notes ?? '',
     active: course.active,
   }
@@ -125,6 +130,8 @@ export function CourseDialog({
         meetingInterval: Number(form.meetingInterval),
         meetingDates: form.meetingDates.map((d) => d.value).filter(Boolean),
         location: form.location,
+        instructor: form.instructor,
+        instructorEmail: form.instructorEmail,
         notes: form.notes,
         active: form.active,
       }
@@ -148,7 +155,12 @@ export function CourseDialog({
   const description =
     'Meeting days and times become one recurring event on your calendar.'
   const body = (
-    <CourseForm form={form} onChange={setForm} onSubmit={save.mutate} />
+    <CourseForm
+      courseId={course?.id}
+      form={form}
+      onChange={setForm}
+      onSubmit={save.mutate}
+    />
   )
   const submit = (
     <Button
@@ -196,10 +208,12 @@ export function CourseDialog({
 
 function CourseForm({
   form,
+  courseId,
   onChange,
   onSubmit,
 }: {
   form: Form
+  courseId?: number
   onChange: (next: Form) => void
   onSubmit: () => void
 }) {
@@ -433,6 +447,14 @@ function CourseForm({
             />
           </Field>
         </div>
+
+        <InstructorField
+          email={form.instructorEmail}
+          excludeCourseId={courseId}
+          name={form.instructor}
+          onEmailChange={(value) => set('instructorEmail', value)}
+          onNameChange={(value) => set('instructor', value)}
+        />
 
         <Field className="min-w-0">
           <FieldLabel htmlFor={locationId}>
