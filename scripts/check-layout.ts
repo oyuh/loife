@@ -25,6 +25,7 @@ console.log('ok  nothing stored, and everything stored, both give the default')
 const custom: SectionId[] = [
   'plan',
   'overdue',
+  'calendar',
   'timer',
   'today',
   'tomorrow',
@@ -61,6 +62,26 @@ assert.ok(
 )
 console.log('ok  additions do not disturb what was already arranged')
 
+// The order every existing install has stored, written before the calendar
+// section existed. It has to come back, at the top, without disturbing the
+// arrangement around it.
+const beforeCalendar = ['timer', 'plan', 'overdue', 'today', 'tomorrow', 'week', 'later', 'someday']
+const withCalendar = reconcile(beforeCalendar)
+assert.deepEqual(withCalendar, ['calendar', ...beforeCalendar])
+console.log('ok  an order saved before the calendar existed gains it at the top')
+
+// And if it was arranged, the arrangement survives.
+const arrangedBefore = ['someday', 'plan', 'timer', 'overdue', 'today', 'tomorrow', 'week', 'later']
+const arrangedAfter = reconcile(arrangedBefore)
+assert.equal(arrangedAfter.length, DEFAULT.length)
+assert.deepEqual([...arrangedAfter].sort(), [...DEFAULT].sort())
+assert.deepEqual(
+  arrangedAfter.filter((id) => id !== 'calendar'),
+  arrangedBefore,
+  'adding the calendar reshuffled the sections around it',
+)
+console.log('ok  a rearranged order keeps its arrangement when a section lands')
+
 for (const junk of [['timer', 'timer'], ['nope'], []]) {
   const out = reconcile(junk)
   assert.equal(
@@ -77,6 +98,7 @@ console.log('ok  no input produces a duplicated section')
  * them shifts up by one.
  */
 assert.deepEqual(reorder(DEFAULT, 'timer', 'today'), [
+  'calendar',
   'plan',
   'overdue',
   'today',

@@ -26,6 +26,7 @@ import { RowContextMenu, RowMenuButton } from '#/components/item-row-actions'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
 import { StudyTimer } from '#/components/study-timer'
 import { SwipeAction, SwipeRow } from '#/components/swipe-row'
+import { TodayCalendar } from '#/components/today-calendar'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -378,6 +379,11 @@ function Today() {
 
   /** The arranged order, minus the buckets that have nothing in them today. */
   const sections = order.flatMap((id): Section[] => {
+    if (id === 'calendar') {
+      return [
+        { id, label: 'the calendar', node: <TodayCalendar items={items} /> },
+      ]
+    }
     if (id === 'timer') {
       return [{ id, label: 'the study timer', node: <StudyTimer /> }]
     }

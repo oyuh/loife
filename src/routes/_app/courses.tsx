@@ -12,10 +12,10 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CalendarStatus } from '#/components/calendar-status'
-import { CourseCalendar } from '#/components/course-calendar'
 import { CourseDialog } from '#/components/course-dialog'
 import { DateTimeText, DayWithRelative } from '#/components/date-time'
 import { Pill } from '#/components/kibo-ui/pill'
+import { ScheduleCalendar } from '#/components/schedule-calendar'
 import { Button } from '#/components/ui/button'
 import {
   Collapsible,
@@ -298,7 +298,7 @@ function CourseCard({
 
       <CollapsibleContent>
         <div className="space-y-4 border-border border-t p-3">
-          <CourseCalendar course={course} items={items} />
+          <ScheduleCalendar courses={[course]} items={items} />
 
           <ItemColumn
             emptyText="Nothing outstanding."

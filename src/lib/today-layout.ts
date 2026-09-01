@@ -3,10 +3,18 @@ import { BUCKET_ORDER } from './urgency.ts'
 /**
  * The Today page as a list of movable sections.
  *
- * The two panels come first, then one section per urgency bucket. Bucket keys
- * are reused verbatim so a section id and a bucket name are the same string.
+ * The panels come first, then one section per urgency bucket. Bucket keys are
+ * reused verbatim so a section id and a bucket name are the same string.
+ *
+ * Adding an id here is safe for anyone with a saved order: `reconcile` puts a
+ * new section back where it would have been rather than on the end.
  */
-export const SECTION_ORDER = ['timer', 'plan', ...BUCKET_ORDER] as const
+export const SECTION_ORDER = [
+  'calendar',
+  'timer',
+  'plan',
+  ...BUCKET_ORDER,
+] as const
 
 export type SectionId = (typeof SECTION_ORDER)[number]
 
