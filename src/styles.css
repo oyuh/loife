@@ -157,17 +157,35 @@
  * a second intrinsic width on the value area inside them. Two of them in a
  * grid then refuse to shrink into their cells and overlap on a phone. Both
  * minimums have to go for `w-full` on the field to mean anything.
+ *
+ * Clearing the minimum is not enough on iOS. Safari still lays the control out
+ * at the width its own chrome wants, so a time field in a 7rem column rendered
+ * wider than the column, pushed the row past the screen and left the whole
+ * page scrolling sideways. `appearance: none` is what stops it sizing itself,
+ * and it has to be paired with an explicit width or the field collapses to
+ * nothing instead. The native picker still opens on tap; this only takes away
+ * the platform's say over the box.
  */
 input[type='date'],
 input[type='time'] {
+  appearance: none;
+  -webkit-appearance: none;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 ::-webkit-date-and-time-value {
   min-width: 0;
+  width: 100%;
   /* iOS centres the value, which reads as misaligned next to every other
      field in the form. */
   text-align: left;
+}
+
+/* Left with the value hard against the right edge of the box otherwise. */
+::-webkit-datetime-edit {
+  padding: 0;
 }
 
 /*

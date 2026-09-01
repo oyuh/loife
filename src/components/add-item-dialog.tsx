@@ -441,7 +441,13 @@ function ItemForm({
 
         <Field>
           <FieldLabel>Due</FieldLabel>
-          <div className="flex gap-2">
+          {/*
+            Explicit tracks rather than a flex pair. The time column is a
+            native control on a phone, and a native control that decides it
+            wants more room than it was given drags the row past the edge of
+            the screen with it. A grid track cannot be argued with.
+          */}
+          <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-2 sm:grid-cols-[minmax(0,1fr)_9.5rem]">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -474,7 +480,7 @@ function ItemForm({
               </PopoverContent>
             </Popover>
 
-            <div className="w-28 shrink-0">
+            <div className="min-w-0">
               <TimeField
                 label="Time, optional"
                 onChange={(value) => set('time', value)}
