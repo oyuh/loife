@@ -38,7 +38,6 @@ import {
 } from '#/components/ui/drawer'
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
@@ -335,7 +334,6 @@ function ItemForm({
    * course silently vanish from the form while still being saved.
    */
   const showCourse = isCourseWork || form.courseId !== UNSET
-  const courseMissing = isCourseWork && form.courseId === UNSET
 
   const courseField = (
     <Field>
@@ -351,10 +349,7 @@ function ItemForm({
         onValueChange={(value) => set('courseId', value)}
         value={form.courseId}
       >
-        <SelectTrigger
-          aria-label="Course"
-          className={cn('h-11 w-full', courseMissing && 'border-primary/50')}
-        >
+        <SelectTrigger aria-label="Course" className="h-11 w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -379,11 +374,6 @@ function ItemForm({
             ))}
         </SelectContent>
       </Select>
-      {courseMissing && (
-        <FieldDescription>
-          Pick one so this shows up under the class as well as on Today.
-        </FieldDescription>
-      )}
     </Field>
   )
 
@@ -488,9 +478,6 @@ function ItemForm({
               />
             </div>
           </div>
-          <FieldDescription>
-            Leave the time blank and it is due by the end of the day.
-          </FieldDescription>
         </Field>
 
         <FieldSeparator />
@@ -537,9 +524,6 @@ function ItemForm({
                 ))}
               </SelectContent>
             </Select>
-            <FieldDescription>
-              Needed to schedule it into a day.
-            </FieldDescription>
           </Field>
         </div>
 
@@ -560,10 +544,6 @@ function ItemForm({
               ))}
             </SelectContent>
           </Select>
-          <FieldDescription>
-            Total revision, spread over the days before it rather than booked in
-            one lump. Study you log comes off the remainder.
-          </FieldDescription>
         </Field>
 
         <Collapsible onOpenChange={setShowMore} open={showMore}>
