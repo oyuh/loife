@@ -260,7 +260,7 @@ function CourseForm({
               id={codeId}
               maxLength={40}
               onChange={(e) => set('code', e.target.value)}
-              placeholder="CS 2340"
+              placeholder="CS 210"
               value={form.code}
             />
           </Field>

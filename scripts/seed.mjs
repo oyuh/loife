@@ -32,33 +32,33 @@ try {
   // the courses calendar and the mailto link rather than leaving both blank.
   // Two courses share an instructor, which is what the instructor combobox is
   // for.
-  const [systems, calc, writing] = await sql`
+  const [databases, algebra, writing] = await sql`
     insert into courses (
       name, code, color, term, days, start_time, end_time, location,
       term_start, term_end, instructor, instructor_email
     )
     values
-      ('Computer Systems', 'CS 2340', '#3b82f6', 'Fall 2026', '{1,3,5}', '10:00', '10:50', 'ECSS 2.410',
-       ${termStart}, ${termEnd}, 'Dr Nguyen', 'nguyen@example.edu'),
-      ('Calculus II', 'MATH 2414', '#22c55e', 'Fall 2026', '{2,4}', '13:00', '14:15', 'FN 2.102',
-       ${termStart}, ${termEnd}, 'Dr Okonkwo', 'okonkwo@example.edu'),
-      ('Rhetoric', 'RHET 1302', '#a855f7', 'Fall 2026', '{2,4}', '16:00', '17:15', 'JO 3.516',
-       ${termStart}, ${termEnd}, 'Dr Nguyen', 'nguyen@example.edu')
+      ('Intro to Databases', 'CS 210', '#3b82f6', 'Sample Term', '{1,3,5}', '10:00', '10:50', 'Science Hall 210',
+       ${termStart}, ${termEnd}, 'Dr oyuh', 'oyuh@example.edu'),
+      ('Linear Algebra', 'MATH 220', '#22c55e', 'Sample Term', '{2,4}', '13:00', '14:15', 'Math Building 104',
+       ${termStart}, ${termEnd}, 'Dr Bell', 'bell@example.edu'),
+      ('Technical Writing', 'ENGL 150', '#a855f7', 'Sample Term', '{2,4}', '16:00', '17:15', 'Library 318',
+       ${termStart}, ${termEnd}, 'Dr oyuh', 'oyuh@example.edu')
     returning id`
 
   await sql`
     insert into items (course_id, name, type, due_at, all_day, priority, status, location)
     values
-      (${systems.id}, 'Project 2: shell', 'assignment', ${day(-2)}, true, 2, 'todo', null),
-      (${calc.id}, 'Problem set 6', 'assignment', ${day(-1)}, true, 3, 'todo', null),
-      (${systems.id}, 'Reading: pipes and forks', 'reading', ${day(0, 9, 0)}, false, 4, 'todo', null),
-      (${writing.id}, 'Draft of essay 2', 'assignment', ${day(0, 23, 59)}, true, 2, 'todo', null),
-      (${calc.id}, 'Quiz 4', 'exam', ${day(0, 13, 0)}, false, 3, 'done', 'FN 2.102'),
+      (${databases.id}, 'Lab 2: schema design', 'assignment', ${day(-2)}, true, 2, 'todo', null),
+      (${algebra.id}, 'Problem set 6', 'assignment', ${day(-1)}, true, 3, 'todo', null),
+      (${databases.id}, 'Reading: indexes and query plans', 'reading', ${day(0, 9, 0)}, false, 4, 'todo', null),
+      (${writing.id}, 'Draft of report 2', 'assignment', ${day(0, 23, 59)}, true, 2, 'todo', null),
+      (${algebra.id}, 'Quiz 4', 'exam', ${day(0, 13, 0)}, false, 3, 'done', 'Math Building 104'),
       (${writing.id}, 'Peer review response', 'task', ${day(1)}, true, 3, 'todo', null),
-      (${calc.id}, 'Midterm 2', 'exam', ${day(4, 13, 0)}, false, 2, 'todo', 'FN 2.102'),
-      (${systems.id}, 'Project 3 proposal', 'assignment', ${day(6)}, true, 3, 'todo', null),
-      (${systems.id}, 'Final project', 'assignment', ${day(30)}, true, 3, 'todo', null),
-      (null, 'Renew parking permit', 'task', null, true, 4, 'todo', null)`
+      (${algebra.id}, 'Midterm 2', 'exam', ${day(4, 13, 0)}, false, 2, 'todo', 'Math Building 104'),
+      (${databases.id}, 'Lab 3 proposal', 'assignment', ${day(6)}, true, 3, 'todo', null),
+      (${databases.id}, 'Final project', 'assignment', ${day(30)}, true, 3, 'todo', null),
+      (null, 'Renew library card', 'task', null, true, 4, 'todo', null)`
 
   const dayOf = (offset) => {
     const d = new Date()
@@ -69,11 +69,11 @@ try {
   await sql`
     insert into log_entries (date, kind, title, body, course_id)
     values
-      (${dayOf(0)}, 'journal', null, ${'Office hours for the shell project, finally understood fork.' + String.fromCharCode(10) + 'Started the essay outline.'}, ${systems.id}),
-      (${dayOf(-1)}, 'journal', null, ${'Quiz went fine. Reading was heavier than expected.'}, null),
-      (${dayOf(-3)}, 'journal', 'Rough one', ${'Slept through the alarm and missed the first half of calc. Got notes from Priya.'}, ${calc.id}),
-      (${dayOf(-3)}, 'event', 'Advising appointment', ${'Registered for spring. Need one more elective.'}, null),
-      (${dayOf(-9)}, 'journal', null, ${'Long library session. Project 2 skeleton is done.'}, ${systems.id})`
+      (${dayOf(0)}, 'journal', null, ${'Finished the schema diagram for lab 2.' + String.fromCharCode(10) + 'Started reading about index types.'}, ${databases.id}),
+      (${dayOf(-1)}, 'journal', null, ${'Quiz went fine. The reading was heavier than expected.'}, null),
+      (${dayOf(-3)}, 'journal', 'Catch-up day', ${'Reworked the problem set from scratch. Much clearer the second time.'}, ${algebra.id}),
+      (${dayOf(-3)}, 'event', 'Advising appointment', ${'Registered for next term. One elective still to pick.'}, null),
+      (${dayOf(-9)}, 'journal', null, ${'Long library session. The lab 2 skeleton is done.'}, ${databases.id})`
 
   const counts = await sql`
     select (select count(*) from courses) as courses,

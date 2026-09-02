@@ -15,7 +15,7 @@ import type { ItemRow } from '#/server/items'
 /**
  * The whole term on Today: every class, every due date, every finished thing.
  *
- * The courses page answers "what does CS 2340 have coming", one class at a
+ * The courses page answers "what does CS 210 have coming", one class at a
  * time. This answers "what does the month look like", which is the question
  * the Today page was already trying to answer with a flat list of buckets.
  *

@@ -1,6 +1,7 @@
 {
   "name": "loife",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "imports": {
     "#/*": "./src/*"

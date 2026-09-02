@@ -4,7 +4,7 @@
  * `course-event.ts` turns the same pattern into one RRULE for Google, which is
  * the right shape for a calendar server and the wrong one for drawing a week.
  * This walks the pattern out into plain dates so the courses page can ask
- * "does CS 2340 meet on the 17th" without reimplementing recurrence rules in a
+ * "does CS 210 meet on the 17th" without reimplementing recurrence rules in a
  * component.
  *
  * Everything is a `2026-09-15` key rather than a Date. A meeting day is a

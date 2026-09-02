@@ -93,7 +93,7 @@ function History() {
         aria-label="Filter history"
         className="mb-2 h-11"
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="essay in:cs2340 took:>60 doneafter:-7d"
+        placeholder="essay in:cs210 took:>60 doneafter:-7d"
         value={query}
       />
 

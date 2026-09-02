@@ -1,0 +1,2 @@
+# Biome checks the working copy, so keep it LF on every platform.
+* text=auto eol=lf

@@ -21,7 +21,7 @@ const entry = (over: Partial<Searchable> = {}): Searchable => ({
   title: 'Problem set 6',
   body: '',
   date: at('2026-09-20T23:59:00'),
-  courseCode: 'MATH 2414',
+  courseCode: 'MATH 220',
   type: 'assignment',
   priority: 3,
   status: 'todo',
@@ -42,9 +42,9 @@ assert.ok(matches(entry({ body: 'chapter four' }), parseQuery('chapter', now)))
 console.log('ok  every word must appear somewhere')
 
 // Course codes match with or without the space.
-assert.ok(matches(entry(), parseQuery('in:math2414', now)))
-assert.ok(matches(entry(), parseQuery('course:MATH2414', now)))
-assert.ok(!matches(entry(), parseQuery('in:cs2340', now)))
+assert.ok(matches(entry(), parseQuery('in:math220', now)))
+assert.ok(matches(entry(), parseQuery('course:MATH220', now)))
+assert.ok(!matches(entry(), parseQuery('in:cs210', now)))
 console.log('ok  course codes ignore spacing and case')
 
 assert.ok(matches(entry({ type: 'exam' }), parseQuery('type:exam', now)))
@@ -102,27 +102,27 @@ console.log('ok  journal entries are searchable and separable')
 const many = [
   entry({
     title: 'Essay',
-    courseCode: 'RHET 1302',
+    courseCode: 'ENGL 150',
     type: 'assignment',
     priority: 1,
     hasAttachment: true,
   }),
   entry({
     title: 'Essay',
-    courseCode: 'RHET 1302',
+    courseCode: 'ENGL 150',
     type: 'assignment',
     priority: 3,
     hasAttachment: false,
   }),
   entry({
     title: 'Essay',
-    courseCode: 'CS 2340',
+    courseCode: 'CS 210',
     type: 'assignment',
     priority: 1,
     hasAttachment: true,
   }),
 ]
-assert.equal(search(many, 'essay in:rhet1302 p:1 has:file', now).length, 1)
+assert.equal(search(many, 'essay in:engl150 p:1 has:file', now).length, 1)
 console.log('ok  filters stack')
 
 // ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ console.log('ok  location filters')
 // Free text reaches the course code and the location, so finding something
 // does not require knowing which key it lives behind.
 assert.ok(matches(located, parseQuery('library', now)))
-assert.ok(matches(entry({ courseCode: 'MATH 2414' }), parseQuery('math', now)))
+assert.ok(matches(entry({ courseCode: 'MATH 220' }), parseQuery('math', now)))
 console.log('ok  free text reaches the course code and the location')
 
 // A journal day carries none of the new fields, and must still search.
@@ -272,25 +272,25 @@ console.log('ok  an entry missing the new fields still searches')
 const history = [
   entry({
     title: 'Essay',
-    courseCode: 'RHET 1302',
+    courseCode: 'ENGL 150',
     completedAt: at('2026-09-14T10:00:00'),
     actualMinutes: 120,
   }),
   entry({
     title: 'Essay',
-    courseCode: 'RHET 1302',
+    courseCode: 'ENGL 150',
     completedAt: at('2026-09-14T10:00:00'),
     actualMinutes: 15,
   }),
   entry({
     title: 'Essay',
-    courseCode: 'RHET 1302',
+    courseCode: 'ENGL 150',
     completedAt: at('2026-01-02T10:00:00'),
     actualMinutes: 120,
   }),
 ]
 assert.equal(
-  search(history, 'essay in:rhet1302 doneafter:-7d took:>60', now).length,
+  search(history, 'essay in:engl150 doneafter:-7d took:>60', now).length,
   1,
 )
 console.log('ok  the history filters stack')

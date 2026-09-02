@@ -1,7 +1,7 @@
 /**
  * Filter language for the command palette.
  *
- * Free text plus `key:value` filters, so one input covers "essay in CS 2340
+ * Free text plus `key:value` filters, so one input covers "essay in CS 210
  * with a file, due before Friday" without a form. Pure and dependency free so
  * scripts/check-search.ts can exercise it.
  */
@@ -357,7 +357,7 @@ export function search<T extends Searchable>(
 
 /** Shown under the input so the syntax is discoverable rather than secret. */
 export const FILTER_HINTS = [
-  { token: 'in:cs2340', describes: 'one course' },
+  { token: 'in:cs210', describes: 'one course' },
   { token: 'type:exam', describes: 'assignments, exams, tasks, readings' },
   { token: 'p:1', describes: 'a priority level' },
   { token: 'has:file', describes: 'only things with an attachment' },

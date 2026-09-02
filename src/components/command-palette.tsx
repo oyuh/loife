@@ -152,7 +152,7 @@ export function CommandPalette({
     >
       <CommandInput
         onValueChange={onQueryChange}
-        placeholder="Search, or try in:cs2340 p:1 has:file before:2026-10-01"
+        placeholder="Search, or try in:cs210 p:1 has:file before:2026-10-01"
         value={query}
       />
 

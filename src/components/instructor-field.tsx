@@ -99,7 +99,7 @@ export function InstructorField({
               className="h-11 pl-9"
               maxLength={200}
               onChange={(event) => onNameChange(event.target.value)}
-              placeholder="Dr Nguyen"
+              placeholder="Dr oyuh"
               value={name}
             />
           </div>
@@ -169,7 +169,7 @@ export function InstructorField({
             inputMode="email"
             maxLength={320}
             onChange={(event) => onEmailChange(event.target.value)}
-            placeholder="nguyen@utdallas.edu"
+            placeholder="oyuh@example.edu"
             type="email"
             value={email}
           />

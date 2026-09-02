@@ -229,8 +229,8 @@ assert.ok(
 )
 console.log('ok  timed events have a non-zero duration')
 
-const titledEvent = toCalendarEvent(calItem(), { ...opts, courseLabel: 'CS 2340' })
-assert.equal(titledEvent?.summary, 'CS 2340: Problem set 7')
+const titledEvent = toCalendarEvent(calItem(), { ...opts, courseLabel: 'CS 210' })
+assert.equal(titledEvent?.summary, 'CS 210: Problem set 7')
 assert.match(titledEvent?.description ?? '', /assignment/)
 console.log('ok  the course leads the summary')
 
@@ -244,7 +244,7 @@ const { toCourseEvent, firstMeetingOn, toUntil, trimSeconds } = await import(
 
 const course = (over: Record<string, unknown> = {}) => ({
   name: 'Computer Systems',
-  code: 'CS 2340',
+  code: 'CS 210',
   location: 'ECSS 2.410',
   days: [1, 3, 5],
   startTime: '10:00:00',
