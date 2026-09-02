@@ -21,7 +21,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
       {
         name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
+        /*
+         * viewport-fit=cover is what makes env(safe-area-inset-*) report
+         * anything at all. Without it Safari hands back 0, so the shell
+         * padded for the home indicator and the status bar with nothing,
+         * and the tab row sat on top of the swipe bar.
+         */
+        content: 'width=device-width, initial-scale=1, viewport-fit=cover',
       },
       {
         title: 'loife',

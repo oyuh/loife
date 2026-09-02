@@ -434,11 +434,13 @@ function ComposePanel({
 
   return (
     <div className="p-3">
-      <div className="mb-2 flex items-baseline gap-2">
+      {/* Both left, and clear of the corner. Pushed right, the day ran
+          under the dialog's own close button. */}
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-2 pr-8">
         <label className="font-medium text-sm" htmlFor={fieldId}>
           {formatKeyDayLong(date)}
         </label>
-        <span className="ml-auto text-muted-foreground text-xs">
+        <span className="text-muted-foreground text-xs">
           {formatKeyRelative(date)}
         </span>
       </div>
@@ -469,13 +471,9 @@ function ComposePanel({
         value={text}
       />
 
-      <div className="mt-2 flex items-center gap-2">
-        <p className="text-muted-foreground text-xs">
-          <Kbd>Enter</Kbd> to log, <Kbd>Shift</Kbd> <Kbd>Enter</Kbd> for a new
-          line
-        </p>
+      <div className="mt-2 flex items-center justify-end gap-2">
         <Button
-          className="ml-auto min-h-11"
+          className="min-h-11"
           onClick={onCancel}
           size="sm"
           type="button"

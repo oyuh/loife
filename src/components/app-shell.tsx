@@ -129,7 +129,11 @@ export function AppShell({
         under — the head asks iOS for a translucent one so the dark ground runs
         to the top edge instead of stopping at a black bar.
       */}
-      <main className="min-w-0 flex-1 pt-[env(safe-area-inset-top)] pb-28 md:pt-0 md:pb-0">
+      <main
+        className="min-w-0 flex-1 pt-[env(safe-area-inset-top)]
+                   pb-[calc(env(safe-area-inset-bottom)+6rem)]
+                   md:pt-0 md:pb-0"
+      >
         {children}
       </main>
     </div>

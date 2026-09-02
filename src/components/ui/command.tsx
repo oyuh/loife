@@ -8,6 +8,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog.tsx'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '#/components/ui/drawer.tsx'
+import { useMediaQuery } from '#/lib/use-media-query.ts'
 import { cn } from '#/lib/utils.ts'
 
 function Command({
@@ -43,6 +51,35 @@ function CommandDialog({
   className?: string
   showCloseButton?: boolean
 }) {
+  const isDesktop = useMediaQuery('(min-width: 640px)')
+
+  const command = (
+    <Command
+      {...commandProps}
+      className="**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+      {children}
+    </Command>
+  )
+
+  /*
+   * A sheet on a phone, like every other dialog in this app. A centred box
+   * put the field halfway up the screen with the keyboard under it, which
+   * is the one place a thumb cannot comfortably reach.
+   */
+  if (!isDesktop) {
+    return (
+      <Drawer {...props}>
+        <DrawerContent className="max-h-[92dvh]">
+          <DrawerHeader className="sr-only">
+            <DrawerTitle>{title}</DrawerTitle>
+            <DrawerDescription>{description}</DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-hidden">{command}</div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog {...props}>
       <DialogHeader className="sr-only">
@@ -53,11 +90,7 @@ function CommandDialog({
         className={cn('overflow-hidden p-0', className)}
         showCloseButton={showCloseButton}
       >
-        <Command
-          {...commandProps}
-          className="**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
-          {children}
-        </Command>
+        {command}
       </DialogContent>
     </Dialog>
   )

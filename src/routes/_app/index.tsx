@@ -404,15 +404,16 @@ function Today() {
   return (
     <div className="mx-auto w-full max-w-2xl px-5 pt-8 pb-28">
       <header className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
-          <p className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
-            {formatDayLong(now)}
-            {late > 0 && (
-              <span className="text-destructive">{late} overdue</span>
-            )}
-          </p>
-        </div>
+        {/* The date is the title. A "Today" above it named the tab you
+            already tapped and cost a phone a whole line of the fold. */}
+        <h1 className="flex flex-wrap items-baseline gap-x-2 font-semibold text-lg tracking-tight">
+          {formatDayLong(now)}
+          {late > 0 && (
+            <span className="font-normal text-destructive text-sm">
+              {late} overdue
+            </span>
+          )}
+        </h1>
 
         {/*
           Arranging is a mode you turn on, move something, and turn off again,
