@@ -45,7 +45,7 @@ export function InlineLog() {
   return (
     <div
       className="pointer-events-none fixed inset-x-0 bottom-0 z-10
-                 pb-[calc(env(safe-area-inset-bottom)+5.25rem)]
+                 pb-[calc(var(--bottom-inset)+5.25rem)]
                  md:pb-4 md:pl-56"
     >
       <div className="pointer-events-auto mx-auto w-full max-w-2xl px-5">

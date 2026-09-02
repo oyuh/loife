@@ -41,11 +41,12 @@ export function AppShell({
     <div className="min-h-dvh md:flex md:items-start">
       <nav
         aria-label="Main"
-        // The row sits above the home indicator rather than against it, and
-        // gets its own padding so the pills are not flush to the screen edges.
+        // The row clears the home indicator without ceding the whole inset
+        // to it. --bottom-inset is where that trade is decided, for this and
+        // for everything else pinned to the bottom edge.
         className="fixed inset-x-0 bottom-0 z-20 flex gap-1 border-border border-t
                    bg-card/95 px-2 pt-2 backdrop-blur
-                   pb-[calc(env(safe-area-inset-bottom)+0.5rem)]
+                   pb-[var(--bottom-inset)]
                    md:sticky md:top-0 md:h-dvh md:w-56 md:shrink-0 md:flex-col
                    md:gap-1 md:border-t-0 md:border-r md:bg-card md:p-3"
       >
@@ -131,7 +132,7 @@ export function AppShell({
       */}
       <main
         className="min-w-0 flex-1 pt-[env(safe-area-inset-top)]
-                   pb-[calc(env(safe-area-inset-bottom)+6rem)]
+                   pb-[calc(var(--bottom-inset)+6rem)]
                    md:pt-0 md:pb-0"
       >
         {children}

@@ -69,7 +69,12 @@ function CommandDialog({
   if (!isDesktop) {
     return (
       <Drawer {...props}>
-        <DrawerContent className="max-h-[92dvh]">
+        {/*
+          bg-popover to match the Command inside it. Left as bg-background
+          the grabber's strip sat a shade darker than everything under it,
+          which read as a mismatched lip across the top of the sheet.
+        */}
+        <DrawerContent className="max-h-[92dvh] bg-popover pb-[var(--bottom-inset)]">
           <DrawerHeader className="sr-only">
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
@@ -87,7 +92,7 @@ function CommandDialog({
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className={cn('overflow-hidden p-0', className)}
+        className={cn('overflow-hidden bg-popover p-0', className)}
         showCloseButton={showCloseButton}
       >
         {command}
