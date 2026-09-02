@@ -17,6 +17,14 @@ import { formatClockWithSeconds, formatMonthDay } from './datetime.ts'
 export const LOG_SEPARATOR = '\n\n'
 
 /**
+ * Two trailing spaces, which is how markdown is told a line break was meant.
+ *
+ * The palette's composer takes Shift+Enter, so a logged line can arrive with
+ * newlines inside it, and those fold away for exactly the same reason.
+ */
+const hardBreak = (text: string) => text.replace(/[ \t]*\r?\n/g, '  \n')
+
+/**
  * One stamped line, ready to append.
  *
  * The stamp says when the line was written, not "20 minutes ago". Relative
@@ -34,5 +42,5 @@ export function logLine(
       ? formatClockWithSeconds(at)
       : `${formatMonthDay(at)}, ${formatClockWithSeconds(at)}`
 
-  return `**${stamp}** · ${text}`
+  return `**${stamp}** · ${hardBreak(text)}`
 }

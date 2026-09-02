@@ -2,7 +2,7 @@
  * Checks the line a journal log writes.
  *
  * The bug this exists to catch is invisible in the string and only shows up
- * once markdown renders it, so the separator is asserted rather than eyeballed.
+ * once markdown renders it, so the breaks are asserted rather than eyeballed.
  *
  *   pnpm check:journal
  */
@@ -31,6 +31,20 @@ const body = [line, backfilled].join(LOG_SEPARATOR)
 assert.equal(body.split('\n\n').length, 2)
 assert.ok(!/[^\n]\n[^\n]/.test(body), 'no lone newline between entries')
 console.log('ok  two entries stay two paragraphs')
+
+// Shift+Enter in the palette composer puts newlines inside one logged line.
+// Markdown folds those too, so they leave carrying a hard break.
+const wrapped = logLine('two things:\nfirst\nsecond', at, { date: today, today })
+assert.equal(wrapped, '**4:07:12 PM** · two things:  \nfirst  \nsecond')
+assert.ok(!/[^ ]\n/.test(wrapped), 'every newline keeps its two spaces')
+console.log('ok  a newline inside a line stays a line break')
+
+// Trailing whitespace before the break is absorbed rather than doubled up.
+assert.equal(
+  logLine('one \ntwo', at, { date: today, today }),
+  '**4:07:12 PM** · one  \ntwo',
+)
+console.log('ok  a stray space before the newline does not stack up')
 
 // Markdown a person typed survives, since the stamp only leads the line.
 assert.equal(
