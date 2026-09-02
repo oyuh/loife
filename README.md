@@ -6,6 +6,32 @@ I built it to track my own day to day. The code is MIT licensed, so take any par
 
 Built for a phone first. The base layout is one column with a bottom tab bar, and rows you swipe sideways for actions. At tablet width and up it becomes a sidebar with dialogs, so a laptop gets the room it has. It installs as a PWA if you want it on a home screen, and nothing is hidden on any size.
 
+<details>
+<summary><strong>Contents</strong></summary>
+
+- [What you get](#what-you-get)
+- [Screenshots](#screenshots)
+- [Requirements](#requirements)
+- [Running it locally](#running-it-locally)
+- [Configuration](#configuration)
+- [Deploying](#deploying)
+  - [Railway](#railway)
+  - [Free and cheaper hosts](#free-and-cheaper-hosts)
+  - [Free Postgres](#free-postgres)
+  - [Free file storage](#free-file-storage)
+- [Technical notes](#technical-notes)
+  - [Stack](#stack)
+  - [Scripts](#scripts)
+  - [Auth](#auth)
+  - [Migrations on deploy](#migrations-on-deploy)
+  - [Running against Docker](#running-against-docker)
+  - [Checks](#checks)
+  - [Time zones](#time-zones)
+  - [Icons](#icons)
+- [License](#license)
+
+</details>
+
 ## What you get
 
 - A Today view that buckets items into overdue, today, this week and later
