@@ -74,7 +74,20 @@ function CommandDialog({
           the grabber's strip sat a shade darker than everything under it,
           which read as a mismatched lip across the top of the sheet.
         */}
-        <DrawerContent className="max-h-[92dvh] bg-popover pb-[var(--bottom-inset)]">
+        {/*
+          Tall on purpose, and the variant has to match the one drawer.tsx
+          already sets or tailwind-merge keeps both and the base wins.
+
+          vaul resizes a sheet when the keyboard opens, and which arithmetic
+          it uses turns on `drawerHeight > innerHeight * 0.8`. Under that bar
+          it sizes the sheet from 26px below the top of the screen rather
+          than from where the sheet actually starts, so a short sheet gets
+          stretched to most of the screen and iOS then shoves it up out of
+          the way of the keyboard. Measured at 375x812: the cap was 649.8px
+          against a threshold of 649.6px. The add sheet is a long form and
+          clears it, which is why that one has always behaved.
+        */}
+        <DrawerContent className="h-[92dvh] bg-popover pb-[var(--bottom-inset)] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]">
           <DrawerHeader className="sr-only">
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>

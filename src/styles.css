@@ -36,16 +36,14 @@
   /*
    * How far anything pinned to the bottom sits above the bottom edge.
    *
-   * Half the home indicator's inset rather than all of it. The full 34pt
-   * is what iOS reserves for the gesture, and a tab row cleared by all of
-   * it reads as floating well short of the bottom of the screen.
-   *
-   * Capped, and that is the important half. Safari changes what env()
-   * reports as its own toolbar comes and goes, and vaul forces that
-   * toolbar up before every drawer animates, so an uncapped value grew
-   * the tab row a little more with each drawer that opened.
+   * 0.5rem on its own today, since without viewport-fit=cover the inset
+   * reports 0 and iOS keeps the home indicator area outside the web view.
+   * The env() term and the cap are here so that turning cover back on is
+   * a one line change that cannot run away: half the inset rather than
+   * all of it, and never more than 1.5rem however the browser chrome
+   * comes and goes.
    */
-  --bottom-inset: min(calc(env(safe-area-inset-bottom) / 2 + 0.375rem), 1.5rem);
+  --bottom-inset: min(calc(env(safe-area-inset-bottom) / 2 + 0.5rem), 1.5rem);
 
   --background: #22252a; /* sideBar.background */
   --foreground: #c5cdd9; /* editor.foreground, lifted — chrome needs more

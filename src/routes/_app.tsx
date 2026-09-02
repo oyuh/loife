@@ -5,6 +5,7 @@ import { AddItemDialog } from '#/components/add-item-dialog'
 import { AppShell } from '#/components/app-shell'
 import { BulkAddDialog } from '#/components/bulk-add-dialog'
 import { CommandPalette } from '#/components/command-palette'
+import { JournalComposeDialog } from '#/components/journal-compose-dialog'
 import { Toaster } from '#/components/ui/sonner'
 import { TooltipProvider } from '#/components/ui/tooltip'
 import { itemsQuery } from '#/lib/queries'
@@ -41,6 +42,11 @@ function AppLayout() {
   const [bulkAdding, setBulkAdding] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [paletteQuery, setPaletteQuery] = useState('')
+  // The day being written into, and the palette text that seeded it.
+  const [writing, setWriting] = useState<{ date: string; seed: string }>({
+    date: '',
+    seed: '',
+  })
   // A search result opens the assignment, so the layout holds the id and the
   // Today route is not the only place an item can be edited from.
   const [openItemId, setOpenItemId] = useState<number | null>(null)
@@ -61,11 +67,19 @@ function AppLayout() {
       <CommandPalette
         onAddItem={() => setAdding(true)}
         onBulkAdd={() => setBulkAdding(true)}
+        onWriteJournal={(date, seed) => setWriting({ date, seed })}
         onOpenChange={setPaletteOpen}
         onOpenItem={setOpenItemId}
         onQueryChange={setPaletteQuery}
         open={paletteOpen}
         query={paletteQuery}
+      />
+      <JournalComposeDialog
+        date={writing.date || null}
+        onOpenChange={(open) => {
+          if (!open) setWriting({ date: '', seed: '' })
+        }}
+        seed={writing.seed}
       />
       <SearchResultDialog
         id={openItemId}

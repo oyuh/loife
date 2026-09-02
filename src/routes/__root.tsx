@@ -22,12 +22,16 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       {
         name: 'viewport',
         /*
-         * viewport-fit=cover is what makes env(safe-area-inset-*) report
-         * anything at all. Without it Safari hands back 0, so the shell
-         * padded for the home indicator and the status bar with nothing,
-         * and the tab row sat on top of the swipe bar.
+         * No viewport-fit=cover. With it the web view runs under the home
+         * indicator and the status bar, and the app owes both of them room
+         * out of its own layout. That is a trade worth making for a design
+         * that bleeds to the edges, and this one does not: it left a band
+         * of dead page below the tab row on an installed iPhone. Without
+         * it iOS keeps that area to itself, env(safe-area-inset-*) reports
+         * 0, and the padding that reads it quietly falls back to its own
+         * floor.
          */
-        content: 'width=device-width, initial-scale=1, viewport-fit=cover',
+        content: 'width=device-width, initial-scale=1',
       },
       {
         title: 'loife',
