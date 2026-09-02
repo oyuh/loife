@@ -15,11 +15,11 @@ import { Button } from '#/components/ui/button'
 import { Field, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
-import { localDateString } from '#/lib/calendar-event'
 import {
   formatKeyDayNumber,
   formatKeyMonth,
   formatKeyWeekday,
+  todayKey,
 } from '#/lib/datetime'
 import { journalQuery } from '#/lib/queries'
 import { cn } from '#/lib/utils'
@@ -27,6 +27,17 @@ import { saveDay } from '#/server/journal'
 
 export const Route = createFileRoute('/_app/journal')({
   component: Journal,
+  // The focused day lives in the URL rather than in component state, so the
+  // command palette can send you straight to a day and the back button takes
+  // you back to the whole list.
+  //
+  // A plain function rather than a zod schema. One optional date is not worth
+  // dragging zod into the chunk this route shares with the rest of the app,
+  // which measured 78kB of client JavaScript for this one field.
+  validateSearch: (search: Record<string, unknown>): { date?: string } =>
+    typeof search.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search.date)
+      ? { date: search.date }
+      : {},
   loader: ({ context }) => context.queryClient.ensureQueryData(journalQuery),
 })
 
@@ -34,7 +45,7 @@ type Day = ReturnType<typeof useJournal>['days'][number]
 
 function useJournal() {
   const { data } = useSuspenseQuery(journalQuery)
-  const today = localDateString(new Date())
+  const today = todayKey()
 
   // Today always has a place to write, even before a row exists for it.
   const hasToday = data.some(
@@ -46,6 +57,7 @@ function useJournal() {
         {
           id: -1,
           date: today,
+          attachmentCount: 0,
           kind: 'journal' as const,
           title: null,
           body: null,
@@ -62,7 +74,11 @@ function useJournal() {
 
 function Journal() {
   const { days, today } = useJournal()
-  const [extraDate, setExtraDate] = useState('')
+  const { date: extraDate = '' } = Route.useSearch()
+  const navigate = Route.useNavigate()
+
+  const setExtraDate = (date: string) =>
+    navigate({ search: date ? { date } : {}, replace: true })
 
   // Picking a date focuses that one day rather than slotting it into the list.
   // Sorted in, a past date landed hundreds of pixels down with no feedback,
@@ -77,6 +93,7 @@ function Journal() {
       {
         id: -2,
         date: extraDate,
+        attachmentCount: 0,
         kind: 'journal' as const,
         title: null,
         body: null,
@@ -163,6 +180,19 @@ function DayEntry({
   const [title, setTitle] = useState(day.title ?? '')
   const [body, setBody] = useState(day.body ?? '')
 
+  /*
+   * Seeded here rather than only at mount. A line logged from Today lands in
+   * this same row, and the refetch that brings it back does not change the id,
+   * so the row never remounts and state held from the first render is still
+   * the body as it was before that line. Editing from that and saving wrote
+   * the old body straight back over the new one.
+   */
+  const startEditing = () => {
+    setTitle(day.title ?? '')
+    setBody(day.body ?? '')
+    setEditing(true)
+  }
+
   const save = useMutation({
     mutationFn: () => saveDay({ data: { date: day.date, title, body } }),
     onSuccess: () => {
@@ -206,7 +236,7 @@ function DayEntry({
               <Button
                 aria-label={`Edit ${day.date}`}
                 className="ml-auto h-8"
-                onClick={() => setEditing(true)}
+                onClick={startEditing}
                 size="sm"
                 variant="ghost"
               >
@@ -257,18 +287,23 @@ function DayEntry({
         ) : (
           <button
             className="text-left text-muted-foreground text-sm italic"
-            onClick={() => setEditing(true)}
+            onClick={startEditing}
             type="button"
           >
             Nothing written yet.
           </button>
         )}
 
+        {/* The list fetches, so days with nothing attached never mount one.
+            The count comes down with the entry, which is what makes that
+            answerable without asking. */}
         {day.id > 0 &&
           (editing ? (
             <AttachmentsPanel logEntryId={day.id} />
           ) : (
-            <AttachmentsList owner={{ logEntryId: day.id }} />
+            day.attachmentCount > 0 && (
+              <AttachmentsList owner={{ logEntryId: day.id }} />
+            )
           ))}
       </div>
     </article>

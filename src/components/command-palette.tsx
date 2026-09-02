@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   BookOpen,
   CalendarCheck,
+  CalendarPlus,
   ClipboardList,
   History,
   NotebookPen,
@@ -20,9 +21,24 @@ import {
   CommandShortcut,
 } from '#/components/ui/command'
 import { Kbd } from '#/components/ui/kbd'
-import { formatMonthDay } from '#/lib/datetime'
+import {
+  formatKeyMonthDay,
+  formatMonthDay,
+  shiftDateKey,
+  todayKey,
+} from '#/lib/datetime'
 import { itemsQuery, journalQuery } from '#/lib/queries'
 import { FILTER_HINTS, type Searchable, search } from '#/lib/search'
+
+/*
+ * Writing on a day is the journal action worth a command. Everything else
+ * about a day is on the page itself, which reads the date off the URL.
+ */
+const JOURNAL_DAYS = [
+  { label: "Write in today's journal", offset: 0 },
+  { label: "Write in yesterday's journal", offset: -1 },
+  { label: "Write in tomorrow's journal", offset: 1 },
+] as const
 
 export function CommandPalette({
   onAddItem,
@@ -60,10 +76,13 @@ export function CommandPalette({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open, onOpenChange])
 
-  const index = useMemo<(Searchable & { id: number; label: string })[]>(() => {
+  const index = useMemo<
+    (Searchable & { id: number; label: string; day: string | null })[]
+  >(() => {
     const fromItems = items.map((item) => ({
       id: item.id,
       label: item.name,
+      day: null,
       kind: 'item' as const,
       title: item.name,
       body: item.notes ?? '',
@@ -82,6 +101,7 @@ export function CommandPalette({
     const fromDays = days.map((day) => ({
       id: day.id,
       label: day.title ?? day.date,
+      day: day.date,
       kind: 'journal' as const,
       title: day.title ?? '',
       body: day.body ?? '',
@@ -117,12 +137,12 @@ export function CommandPalette({
   return (
     <CommandDialog
       className="sm:max-w-2xl"
-      description="Search everything, or jump somewhere"
+      description="Run a command, search everything, or jump somewhere"
       onOpenChange={onOpenChange}
       open={open}
       // Filtering lives in the query language, so cmdk must not also filter.
       commandProps={{ shouldFilter: false }}
-      title="Search"
+      title="Command palette"
     >
       <CommandInput
         onValueChange={onQueryChange}
@@ -164,7 +184,16 @@ export function CommandPalette({
                 {foundDays.map((result) => (
                   <CommandItem
                     key={`day-${result.id}`}
-                    onSelect={() => run(() => navigate({ to: '/journal' }))}
+                    // Straight to the day it found, rather than the top of a
+                    // list the day might be a year down.
+                    onSelect={() =>
+                      run(() =>
+                        navigate({
+                          to: '/journal',
+                          search: result.day ? { date: result.day } : {},
+                        }),
+                      )
+                    }
                     value={`day-${result.id}`}
                   >
                     <NotebookPen />
@@ -192,6 +221,34 @@ export function CommandPalette({
               <CommandItem onSelect={() => run(onBulkAdd)} value="bulk">
                 <ClipboardList />
                 <span>Bulk add from a syllabus</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading="Journal">
+              {JOURNAL_DAYS.map(({ label, offset }) => {
+                const key = shiftDateKey(todayKey(), offset)
+                return (
+                  <CommandItem
+                    key={label}
+                    onSelect={() =>
+                      run(() =>
+                        navigate({ to: '/journal', search: { date: key } }),
+                      )
+                    }
+                    value={label}
+                  >
+                    <CalendarPlus />
+                    <span>{label}</span>
+                    <CommandShortcut>{formatKeyMonthDay(key)}</CommandShortcut>
+                  </CommandItem>
+                )
+              })}
+              <CommandItem
+                onSelect={() => onQueryChange('kind:journal ')}
+                value="search journal"
+              >
+                <NotebookPen />
+                <span>Search journal entries</span>
               </CommandItem>
             </CommandGroup>
 

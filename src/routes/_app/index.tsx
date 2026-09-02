@@ -62,7 +62,7 @@ import {
 import { Switch } from '#/components/ui/switch'
 import { formatDayLong } from '#/lib/datetime'
 import { type MoveTarget, moveTargetDate } from '#/lib/move-targets'
-import { itemsQuery } from '#/lib/queries'
+import { coursesQuery, itemsQuery } from '#/lib/queries'
 import {
   readOrder,
   reorder,
@@ -89,7 +89,14 @@ import {
 
 export const Route = createFileRoute('/_app/')({
   component: Today,
-  loader: ({ context }) => context.queryClient.ensureQueryData(itemsQuery),
+  // Courses too. Both the calendar and the day plan below need them to draw
+  // classes, and fetched here they ride the server render instead of costing
+  // a round trip once the page has already painted.
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(itemsQuery),
+      context.queryClient.ensureQueryData(coursesQuery),
+    ]),
 })
 
 /** 1 and 2 are urgent, 4 and 5 are deferred, 3 says nothing worth a pill. */

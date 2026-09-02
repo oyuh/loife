@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '#/db'
-import { logEntries } from '#/db/schema'
+import { attachments, logEntries } from '#/db/schema'
 import { localDateString } from '#/lib/calendar-event'
 import { requireUser } from '#/lib/session.server'
 
@@ -157,11 +157,32 @@ export const saveDay = createServerFn({ method: 'POST' })
     return row
   })
 
-/** Full entries for the journal page, newest first. */
+/**
+ * Full entries for the journal page, newest first.
+ *
+ * The attachment count rides along so the page can skip the file list on the
+ * days that have none. It used to mount one for every day on screen, and each
+ * of those made its own request, so a year of journalling opened the page with
+ * a few hundred round trips for a list that was almost entirely empty.
+ */
 export const listDays = createServerFn({ method: 'GET' }).handler(async () => {
   await requireUser()
   return db
-    .select()
+    .select({
+      id: logEntries.id,
+      date: logEntries.date,
+      kind: logEntries.kind,
+      title: logEntries.title,
+      body: logEntries.body,
+      courseId: logEntries.courseId,
+      location: logEntries.location,
+      createdAt: logEntries.createdAt,
+      updatedAt: logEntries.updatedAt,
+      attachmentCount: sql<number>`(
+        select count(*)::int from ${attachments}
+        where ${attachments.logEntryId} = ${logEntries.id}
+      )`,
+    })
     .from(logEntries)
     .orderBy(desc(logEntries.date), desc(logEntries.id))
 })

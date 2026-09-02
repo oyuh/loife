@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import {
   CalendarCheck,
+  Command,
   History,
   NotebookPen,
   Plus,
-  Search,
   Settings,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -61,10 +61,18 @@ export function AppShell({
           <span>Today</span>
         </Link>
 
-        {/* Cmd K is keyboard only, so a phone needs its own way in. */}
-        <button className={TAB} onClick={onOpenPalette} type="button">
-          <Search aria-hidden="true" className={ICON} />
-          <span>Search</span>
+        {/* Cmd K is keyboard only, so a phone needs its own way in. The phone
+            label is the short one, because two words wrap under a 90px tab and
+            push the whole row taller. */}
+        <button
+          aria-label="Command palette"
+          className={TAB}
+          onClick={onOpenPalette}
+          type="button"
+        >
+          <Command aria-hidden="true" className={ICON} />
+          <span className="md:hidden">Commands</span>
+          <span className="hidden md:inline">Command palette</span>
         </button>
 
         <Link

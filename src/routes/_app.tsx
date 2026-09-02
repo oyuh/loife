@@ -16,8 +16,18 @@ import { fetchCurrentUser } from '#/server/auth'
  * the session themselves, since this one only protects the UI.
  */
 export const Route = createFileRoute('/_app')({
-  beforeLoad: async () => {
-    const user = await fetchCurrentUser()
+  /*
+   * beforeLoad runs on every navigation into this layout, and on the client a
+   * server function is an HTTP request, so the bare call put a round trip in
+   * front of every page change. Cached instead: the session cookie does not
+   * change while the tab is open, and signing out reloads the page.
+   */
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData({
+      queryKey: ['current-user'] as const,
+      queryFn: () => fetchCurrentUser(),
+      staleTime: Number.POSITIVE_INFINITY,
+    })
     if (!user) throw redirect({ to: '/signin' })
     return { user }
   },
