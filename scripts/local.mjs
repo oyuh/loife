@@ -1,7 +1,7 @@
 /**
  * The local Docker stack.
  *
- *   pnpm local:up        start Postgres and the S3 stand-in, then migrate
+ *   pnpm local:up        start Postgres and the S3 stand-in, then push the schema
  *   pnpm local:down      stop them, keeping the data
  *   pnpm local:down --clean   stop them and throw the data away
  *   pnpm local:restart   down then up
@@ -87,12 +87,12 @@ async function up() {
   await compose('up', '-d', '--wait')
   await ensureBucket()
 
-  console.log('\n  running migrations')
-  // The same script Railway runs on boot, rather than the drizzle-kit CLI, so
-  // a migration that works under one and not the other cannot slip through.
-  await run('node', ['scripts/migrate.mjs'], {
-    DATABASE_URL: LOCAL.DATABASE_URL,
-  })
+  console.log('\n  pushing the schema')
+  // drizzle-kit reads DATABASE_URL out of the environment before it falls back
+  // to .env, so the containers get the schema and Railway is left alone.
+  // --force because the container's data is disposable, so a prompt about
+  // dropping a column has only one sensible answer here.
+  await run('pnpm', ['db:push', '--force'], { DATABASE_URL: LOCAL.DATABASE_URL })
 
   console.log(`
   Postgres  ${LOCAL.DATABASE_URL}

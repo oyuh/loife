@@ -11,3 +11,6 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+
+# pnpm 11 writes this on install, and its presence breaks the Railway build.
+pnpm-workspace.yaml

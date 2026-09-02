@@ -17,7 +17,6 @@ try {
 
 export default defineConfig({
   schema: './src/db/schema.ts',
-  out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
     url: fromShell ?? process.env.DATABASE_URL ?? '',

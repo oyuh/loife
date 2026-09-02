@@ -23,7 +23,7 @@ Built for a phone first. The base layout is one column with a bottom tab bar, an
   - [Stack](#stack)
   - [Scripts](#scripts)
   - [Auth](#auth)
-  - [Migrations on deploy](#migrations-on-deploy)
+  - [Schema changes](#schema-changes)
   - [Running against Docker](#running-against-docker)
   - [Checks](#checks)
   - [Time zones](#time-zones)
@@ -100,7 +100,7 @@ Docker covers Postgres and the bucket while you look around, so you can defer bo
 5. Point `DATABASE_URL` at a Postgres database, then apply the schema:
 
    ```bash
-   pnpm db:migrate
+   pnpm db:push
    ```
 
 6. Start the dev server:
@@ -148,7 +148,7 @@ Two commands are all a host needs:
 pnpm build && pnpm start
 ```
 
-`pnpm start` applies pending migrations before it boots the server, so a schema change ships with the code that needs it.
+The server does not apply the schema on boot. Run `pnpm db:push` against the deployed database whenever the schema changes, before the code that needs it goes out.
 
 ### Railway
 
@@ -156,7 +156,7 @@ This is what the repo was set up against.
 
 1. Create a project and pick **Deploy from GitHub repo**, then your fork.
 2. Add the Postgres plugin. Railway injects `DATABASE_URL` into the service for you.
-3. Railway detects pnpm and runs `pnpm build`, then `pnpm start`.
+3. Railway detects pnpm and runs `pnpm build`, then `pnpm start`. Run `pnpm db:push` once against the injected `DATABASE_URL` to create the tables.
 4. Add every variable from `.env.example` under **Variables**. Generate a `SESSION_SECRET` different from your local one.
 5. Under **Settings → Networking**, add a custom domain and point a CNAME at the target Railway gives you.
 6. Wait for the certificate to issue before you sign in. The session cookie sets `Secure` in production and will not survive plain HTTP.
@@ -177,7 +177,7 @@ These tiers change often. Read the current pricing page before you commit to one
 | [Zeabur](https://zeabur.com), [Northflank](https://northflank.com) | The same shape as Railway, each with a free tier |
 | A VPS you already rent | Clone, `pnpm build`, then run `pnpm start` under systemd or PM2. [docker-compose.yml](./docker-compose.yml) already defines Postgres and a bucket |
 
-Vercel, Netlify and Cloudflare Pages need extra work. They run functions rather than a long-lived server, so you would swap the Nitro preset in [vite.config.ts](./vite.config.ts) and move `pnpm start`'s migration step somewhere else. Nothing in the app blocks it. Nobody has tried it.
+Vercel, Netlify and Cloudflare Pages need extra work. They run functions rather than a long-lived server, so you would swap the Nitro preset in [vite.config.ts](./vite.config.ts). Nothing in the app blocks it. Nobody has tried it.
 
 ### Free Postgres
 
@@ -209,7 +209,7 @@ How the app is built, for anyone reading the source rather than running it.
 | Routing and data | TanStack Router, TanStack Query v5 |
 | Styling | Tailwind v4, one CSS import and no config file |
 | Components | shadcn/ui base, kibo-ui registry on top |
-| Database | Postgres, Drizzle ORM, drizzle-kit migrations |
+| Database | Postgres, Drizzle ORM, schema pushed with drizzle-kit |
 | Calendar | Google Calendar API v3 over `fetch` |
 | File storage | S3 API via `@aws-sdk/client-s3` |
 | Auth | Hand-rolled OAuth over `fetch`, sessions sealed by TanStack Start |
@@ -223,11 +223,9 @@ Route files under `src/routes` drive the router, `src/server` holds the server f
 |---|---|
 | `pnpm dev` | Dev server on port 3000 |
 | `pnpm build` | Production build into `.output` |
-| `pnpm start` | Migrate, then run the built server |
+| `pnpm start` | Run the built server |
 | `pnpm check` | Biome lint and format check |
-| `pnpm generate-routes` | Regenerate `routeTree.gen.ts` |
-| `pnpm db:generate` | Write a migration from a schema change |
-| `pnpm db:migrate` | Apply pending migrations |
+| `pnpm db:push` | Push the schema to whatever `DATABASE_URL` points at |
 | `pnpm db:studio` | Open Drizzle Studio |
 | `pnpm db:seed` | Fill a local database with sample data |
 | `pnpm local:up` | Start the Docker stack, described below |
@@ -238,21 +236,17 @@ One user. The GitHub callback compares the numeric account ID against `ALLOWED_G
 
 Sessions are sealed cookies from TanStack Start's `useSession`, which handles the encryption and the signing.
 
-### Migrations on deploy
+### Schema changes
 
-The `start` script runs [scripts/migrate.mjs](./scripts/migrate.mjs) before the server boots:
+[src/db/schema.ts](./src/db/schema.ts) is the only description of the schema. `pnpm db:push` diffs it against a live database and applies the difference:
 
 ```bash
-node scripts/migrate.mjs && node .output/server/index.mjs
+pnpm db:push
 ```
 
-Migrations therefore apply inside the host's private network, where `DATABASE_URL` resolves, so Postgres needs no public TCP proxy. A failed migration stops the boot rather than serving traffic against a schema that does not match the code.
+There is no migrations folder. One person owns this database, so a generated SQL file per change bought a history nobody read and a second thing to keep in sync with the schema.
 
-The script uses drizzle-orm's migrator rather than the drizzle-kit CLI, because drizzle-kit is a devDependency and a production image may prune it.
-
-Railway's `railway.json` pre-deploy command was the first approach and it never executed, so it was dropped. Chaining into `start` is host agnostic and needs no platform config, which is why the app deploys anywhere.
-
-This assumes one replica. Several would race to migrate on boot, so move this back to a single pre-deploy step before you scale up.
+The trade is that `db:push` needs a reachable database and someone to run it. Deploys do not apply the schema themselves, so push before you ship a change that depends on a new column. It also asks before anything destructive, which is worth reading rather than accepting.
 
 ### Running against Docker
 
@@ -262,7 +256,7 @@ Docker runs Postgres and a MinIO container that stands in for R2:
 pnpm local:up
 ```
 
-That starts both containers, waits for their healthchecks, creates the bucket, and applies migrations. Then start the app against them:
+That starts both containers, waits for their healthchecks, creates the bucket, and pushes the schema. Then start the app against them:
 
 ```bash
 pnpm local:dev
@@ -270,7 +264,7 @@ pnpm local:dev
 
 | Command | Does |
 |---|---|
-| `pnpm local:up` | Start the containers and migrate |
+| `pnpm local:up` | Start the containers and push the schema |
 | `pnpm local:dev` | Run the dev server against the containers |
 | `pnpm local:down` | Stop the containers, keeping the data |
 | `pnpm local:down --clean` | Stop them and drop the volumes |
@@ -282,11 +276,10 @@ Postgres listens on 5433, because an installed Postgres already holds 5432. Brow
 
 ### Checks
 
-None of these need Docker or a database you started yourself. `db:check` boots an in-process Postgres and throws it away.
+None of these need Docker or a database you started yourself.
 
 | Command | Covers |
 |---|---|
-| `pnpm db:check` | Migrations apply, and constraints reject bad rows |
 | `pnpm check:dates` | Today view bucketing, ordering and grace periods |
 | `pnpm check:datetime` | Site-wide date and time formatting |
 | `pnpm check:search` | The filter language shared by the palette and history |
