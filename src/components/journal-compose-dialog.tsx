@@ -95,7 +95,7 @@ export function JournalComposeDialog({
         <Field>
           <FieldLabel htmlFor={fieldId}>Entry</FieldLabel>
           <Textarea
-            className="min-h-[45dvh] sm:min-h-48"
+            className="min-h-[22dvh] sm:min-h-32"
             id={fieldId}
             maxLength={2000}
             onChange={(event) => setText(event.target.value)}
