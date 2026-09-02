@@ -3,7 +3,8 @@ import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '#/db'
 import { attachments, logEntries } from '#/db/schema'
-import { localDateString } from '#/lib/calendar-event'
+import { todayKey } from '#/lib/datetime'
+import { LOG_SEPARATOR, logLine } from '#/lib/journal-line'
 import { requireUser } from '#/lib/session.server'
 
 const PREVIEW_LENGTH = 160
@@ -59,33 +60,44 @@ export const getLogEntry = createServerFn({ method: 'GET' })
     return row ?? null
   })
 
+/** `2026-09-15`, the shape every journal date arrives in. */
+const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
 const lineInput = z.object({
   text: z.string().trim().min(1, 'Write something first').max(2000),
+  /** The day to write into. Defaults to today. */
+  date: dateKey.optional(),
 })
 
 /**
- * Appends one line to today's journal entry, creating the entry if the day has
- * none yet.
+ * Appends one stamped line to a day's journal entry, creating the entry if
+ * that day has none yet.
  *
  * The append happens inside the insert so a second line cannot read a stale
  * body and overwrite the first. The partial unique index on (date) where
  * kind = 'journal' is what the conflict target refers to.
  */
-export const appendToToday = createServerFn({ method: 'POST' })
+export const appendToDay = createServerFn({ method: 'POST' })
   .validator(lineInput)
   .handler(async ({ data }) => {
     await requireUser()
 
-    const today = localDateString(new Date())
+    const now = new Date()
+    // Zoned rather than the host clock, because this is compared against a
+    // date key the browser worked out from the same pinned zone.
+    const today = todayKey(now)
+    const date = data.date ?? today
+
+    const line = logLine(data.text, now, { date, today })
 
     const [row] = await db
       .insert(logEntries)
-      .values({ date: today, kind: 'journal', body: data.text })
+      .values({ date, kind: 'journal', body: line })
       .onConflictDoUpdate({
         target: logEntries.date,
         targetWhere: sql`${logEntries.kind} = 'journal'`,
         set: {
-          body: sql`coalesce(${logEntries.body} || E'\n', '') || ${data.text}`,
+          body: sql`coalesce(${logEntries.body} || ${LOG_SEPARATOR}, '') || ${line}`,
         },
       })
       .returning({ id: logEntries.id })
@@ -121,7 +133,7 @@ export const deleteLogEntry = createServerFn({ method: 'POST' })
   })
 
 const dayInput = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: dateKey,
   title: z.string().max(200).nullable(),
   body: z.string().max(100_000).nullable(),
 })

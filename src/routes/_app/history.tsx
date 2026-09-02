@@ -4,6 +4,7 @@ import { History as HistoryIcon } from 'lucide-react'
 import { useState } from 'react'
 import { DateTimeText } from '#/components/date-time'
 import { Pill } from '#/components/kibo-ui/pill'
+import { RevealMore, useReveal } from '#/components/reveal'
 import {
   Empty,
   EmptyDescription,
@@ -70,13 +71,17 @@ function History() {
     item,
   }))
 
-  const shown = (query.trim() ? search(index, query) : index)
+  const matched = (query.trim() ? search(index, query) : index)
     .map((row) => row.item)
     .sort((a, b) => {
       const at = a.completedAt ? +a.completedAt : 0
       const bt = b.completedAt ? +b.completedAt : 0
       return bt - at || b.id - a.id
     })
+
+  // A row is one line, so they come in big slices. The query resets the count,
+  // because a filter is a different list rather than the same one shortened.
+  const reveal = useReveal(matched, 40, query)
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 py-8">
@@ -117,7 +122,7 @@ function History() {
         ))}
       </div>
 
-      {shown.length === 0 ? (
+      {matched.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -131,7 +136,7 @@ function History() {
         </Empty>
       ) : (
         <ItemGroup>
-          {shown.map((item) => (
+          {reveal.shown.map((item) => (
             <Item
               className="gap-3 rounded-none border-b-border px-0 py-3 last:border-b-transparent"
               key={item.id}
@@ -174,6 +179,8 @@ function History() {
           ))}
         </ItemGroup>
       )}
+
+      <RevealMore noun="older" reveal={reveal} />
 
       {activity.length > 0 && (
         <section className="mt-10">

@@ -11,6 +11,7 @@ import { AttachmentsPanel } from '#/components/attachments-panel'
 import { DateField } from '#/components/date-field'
 import { Pill } from '#/components/kibo-ui/pill'
 import { Markdown } from '#/components/markdown'
+import { RevealMore, useReveal } from '#/components/reveal'
 import { Button } from '#/components/ui/button'
 import { Field, FieldLabel } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
@@ -105,6 +106,13 @@ function Journal() {
     ]
   }, [days, extraDate])
 
+  /*
+   * Small slices, because a day is a whole markdown body and not a line. The
+   * chosen date resets the count: focusing one day and coming back should
+   * start at the top of the list rather than wherever you had scrolled to.
+   */
+  const reveal = useReveal(shown, 12, extraDate)
+
   let lastMonth = ''
 
   return (
@@ -139,7 +147,7 @@ function Journal() {
       </div>
 
       <div className="space-y-10">
-        {shown.map((day) => {
+        {reveal.shown.map((day) => {
           const month = formatKeyMonth(day.date)
           const showMonth = month !== lastMonth
           lastMonth = month
@@ -160,6 +168,8 @@ function Journal() {
           )
         })}
       </div>
+
+      <RevealMore noun="earlier" reveal={reveal} />
     </div>
   )
 }

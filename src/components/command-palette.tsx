@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import {
   BookOpen,
@@ -11,9 +11,9 @@ import {
   Settings,
 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
+import { toast } from 'sonner'
 import {
   CommandDialog,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -29,15 +29,20 @@ import {
 } from '#/lib/datetime'
 import { itemsQuery, journalQuery } from '#/lib/queries'
 import { FILTER_HINTS, type Searchable, search } from '#/lib/search'
+import { appendToDay } from '#/server/journal'
 
 /*
  * Writing on a day is the journal action worth a command. Everything else
  * about a day is on the page itself, which reads the date off the URL.
+ *
+ * These do double duty. With the box empty they open the day. With something
+ * typed they log it there instead, so the search field is also the quick
+ * capture box, and yesterday gets a line without a trip to the page.
  */
 const JOURNAL_DAYS = [
-  { label: "Write in today's journal", offset: 0 },
-  { label: "Write in yesterday's journal", offset: -1 },
-  { label: "Write in tomorrow's journal", offset: 1 },
+  { noun: 'today', offset: 0 },
+  { noun: 'yesterday', offset: -1 },
+  { noun: 'tomorrow', offset: 1 },
 ] as const
 
 export function CommandPalette({
@@ -58,6 +63,20 @@ export function CommandPalette({
   onQueryChange: (query: string) => void
 }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const logLine = useMutation({
+    mutationFn: (input: { text: string; date: string }) =>
+      appendToDay({ data: input }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: journalQuery.queryKey })
+      toast.success('Logged')
+    },
+    onError: (error) =>
+      toast.error(
+        error instanceof Error ? error.message : 'Could not log that',
+      ),
+  })
 
   // Only fetched while the palette is open, so opening it pays for the index
   // rather than every page load.
@@ -153,7 +172,16 @@ export function CommandPalette({
       <CommandList className="max-h-[60dvh]">
         {query.trim() ? (
           <>
-            <CommandEmpty>Nothing matches that.</CommandEmpty>
+            {/*
+              Ours rather than CommandEmpty, which counts the rows cmdk has
+              mounted. The log rows below are always mounted, so by its
+              count nothing is ever empty.
+            */}
+            {foundItems.length === 0 && foundDays.length === 0 && (
+              <p className="py-6 text-center text-muted-foreground text-sm">
+                Nothing matches that. It can still go in the journal.
+              </p>
+            )}
 
             {foundItems.length > 0 && (
               <CommandGroup heading="Assignments">
@@ -207,6 +235,32 @@ export function CommandPalette({
                 ))}
               </CommandGroup>
             )}
+
+            {/*
+              Last, deliberately. cmdk highlights the first row, and Enter
+              after a search has to open what was found rather than write it
+              into the journal.
+            */}
+            <CommandGroup heading={`Log “${query.trim()}” to`}>
+              {JOURNAL_DAYS.map(({ noun, offset }) => {
+                const key = shiftDateKey(todayKey(), offset)
+                return (
+                  <CommandItem
+                    key={`log-${noun}`}
+                    onSelect={() =>
+                      run(() =>
+                        logLine.mutate({ text: query.trim(), date: key }),
+                      )
+                    }
+                    value={`log-${noun}`}
+                  >
+                    <CalendarPlus />
+                    <span>{noun}'s journal</span>
+                    <CommandShortcut>{formatKeyMonthDay(key)}</CommandShortcut>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
           </>
         ) : (
           <>
@@ -225,20 +279,20 @@ export function CommandPalette({
             </CommandGroup>
 
             <CommandGroup heading="Journal">
-              {JOURNAL_DAYS.map(({ label, offset }) => {
+              {JOURNAL_DAYS.map(({ noun, offset }) => {
                 const key = shiftDateKey(todayKey(), offset)
                 return (
                   <CommandItem
-                    key={label}
+                    key={noun}
                     onSelect={() =>
                       run(() =>
                         navigate({ to: '/journal', search: { date: key } }),
                       )
                     }
-                    value={label}
+                    value={`write ${noun}`}
                   >
                     <CalendarPlus />
-                    <span>{label}</span>
+                    <span>Write in {noun}'s journal</span>
                     <CommandShortcut>{formatKeyMonthDay(key)}</CommandShortcut>
                   </CommandItem>
                 )

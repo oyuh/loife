@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { journalQuery } from '#/lib/queries'
-import { appendToToday } from '#/server/journal'
+import { appendToDay } from '#/server/journal'
 
 /**
  * One input, pinned to the bottom of the screen like a chat composer.
@@ -22,7 +22,7 @@ export function InlineLog() {
   const queryClient = useQueryClient()
 
   const log = useMutation({
-    mutationFn: (line: string) => appendToToday({ data: { text: line } }),
+    mutationFn: (line: string) => appendToDay({ data: { text: line } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: journalQuery.queryKey })
       toast.success('Logged')
