@@ -68,7 +68,21 @@ function CommandDialog({
    */
   if (!isDesktop) {
     return (
-      <Drawer {...props}>
+      /*
+       * repositionInputs off, because vaul's is wrong for a short sheet.
+       * Focusing a field with the body pinned to position:fixed makes iOS
+       * shift the whole visual viewport up, which drives the sheet's
+       * offsetFromTop to roughly zero, and vaul then sizes it to
+       * `visualViewportHeight - offsetFromTop`: the entire visible screen,
+       * with the field stranded at the top of it. The taller forms in this
+       * app never showed it because a nearly full height sheet is what that
+       * arithmetic wanted anyway.
+       *
+       * Left off, iOS does the work itself. The shift that broke the
+       * measurement is the same shift that lifts the field clear of the
+       * keyboard, and the sheet keeps the height of what is in it.
+       */
+      <Drawer repositionInputs={false} {...props}>
         {/*
           bg-popover to match the Command inside it. Left as bg-background
           the grabber's strip sat a shade darker than everything under it,

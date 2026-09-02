@@ -204,7 +204,10 @@ export function CommandPalette({
             value={query}
           />
 
-          <CommandList className="max-h-[60dvh]">
+          {/* Shorter on a phone. The sheet sits above the keyboard by way of
+              the viewport shift iOS does, and 60dvh of list pushed the bottom
+              of it back under the keys. */}
+          <CommandList className="max-h-[42dvh] sm:max-h-[60dvh]">
             {query.trim() ? (
               <>
                 {/*
