@@ -92,7 +92,17 @@ function CommandDialog({
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
-          <div className="overflow-y-auto">{command}</div>
+          {/*
+            The sheet is a fixed 92dvh, so whatever is inside it has to be
+            told to fill that height. Left to size itself the column ended
+            at the list's own cap and the sheet kept the rest as dead space
+            below the last row. Scrolling belongs to the list rather than
+            this wrapper, which keeps the search field pinned to the top of
+            the sheet instead of letting it scroll away.
+          */}
+          <div className="flex min-h-0 flex-1 flex-col [&_[data-slot=command-list]]:max-h-none [&_[data-slot=command-list]]:min-h-0 [&_[data-slot=command-list]]:flex-1">
+            {command}
+          </div>
         </DrawerContent>
       </Drawer>
     )
