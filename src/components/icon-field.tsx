@@ -69,8 +69,16 @@ export function IconField({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent align="start" className="w-72 p-0">
-          <div className="relative border-border border-b p-2">
+        {/* The popover is the scroll container rather than a div inside it.
+            vaul's touchmove handler walks up from whatever the finger landed
+            on, and calls preventDefault when it reaches the document without
+            finding a scrollable element. Scrolling the popover means every
+            touch in here finds one, including the ones on the search box. */}
+        <PopoverContent
+          align="start"
+          className="max-h-[60dvh] w-72 overflow-y-auto overscroll-contain p-0"
+        >
+          <div className="sticky top-0 z-10 border-border border-b bg-popover p-2">
             <Search
               aria-hidden="true"
               className="-translate-y-1/2 absolute top-1/2 left-4 size-4 text-muted-foreground"
@@ -84,7 +92,7 @@ export function IconField({
             />
           </div>
 
-          <div className="max-h-64 overflow-y-auto p-2">
+          <div className="p-2">
             {groups.length === 0 && (
               <p className="px-1 py-6 text-center text-muted-foreground text-sm">
                 No icon matches “{query.trim()}”.

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { CourseMark } from '#/components/course-icon'
 import { ClockText } from '#/components/date-time'
 import {
   Collapsible,
@@ -111,6 +112,14 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
     })
   }, [busy, items, prefs, studied])
 
+  // The planner works in Plannables, which carry no course, because a course
+  // is nothing to schedule around. The rows it planned from are still here, so
+  // the mark comes from those rather than by widening the planner's input.
+  const courseOf = useMemo(() => {
+    const byId = new Map(items.map((item) => [item.id, item.course]))
+    return (id: number) => byId.get(id) ?? null
+  }, [items])
+
   const needEstimates = plan.unplaced.filter((u) => u.reason === 'no estimate')
   const noRoom = plan.unplaced.filter((u) => u.reason === 'no room')
 
@@ -146,11 +155,19 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
                   <ClockText value={block.start} /> –{' '}
                   <ClockText value={block.end} />
                 </span>
-                <span className="min-w-0 flex-1 truncate">
-                  {block.kind === 'study' && (
-                    <span className="text-primary">Study · </span>
-                  )}
-                  {block.item.name}
+                <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                  <CourseMark
+                    className="size-3.5"
+                    color={courseOf(block.item.id)?.color}
+                    dotClassName="size-1.5 bg-foreground"
+                    icon={courseOf(block.item.id)?.icon}
+                  />
+                  <span className="min-w-0 truncate">
+                    {block.kind === 'study' && (
+                      <span className="text-primary">Study · </span>
+                    )}
+                    {block.item.name}
+                  </span>
                 </span>
                 <span className="shrink-0 text-muted-foreground text-xs">
                   {minutesLabel(block.item.estimatedMinutes ?? 0)}

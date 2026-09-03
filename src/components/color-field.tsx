@@ -108,7 +108,15 @@ export function ColorField({
             </Button>
           </PopoverTrigger>
 
-          <PopoverContent align="start" className="w-64 p-3">
+          {/* overflow-y-auto is not for scrolling, the picker always fits.
+              It makes this element a scroll container, which is what vaul
+              looks for when a drawer is open: its touchmove handler calls
+              preventDefault on any touch whose nearest scrollable ancestor is
+              the document, and that cancelled every drag in here on a phone. */}
+          <PopoverContent
+            align="start"
+            className="w-64 overflow-y-auto overscroll-contain p-3"
+          >
             {/* Remounted per open, so it starts from the colour in the form
                 rather than whatever it was left on. */}
             <ColorPicker

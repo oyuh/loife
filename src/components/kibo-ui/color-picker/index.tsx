@@ -136,13 +136,30 @@ export const ColorPickerSelection = memo(
     const [isDragging, setIsDragging] = useState(false);
     const [positionX, setPositionX] = useState(0);
     const [positionY, setPositionY] = useState(0);
-    const { hue, setSaturation, setLightness } = useColorPicker();
+    const { hue, saturation, lightness, setSaturation, setLightness } =
+      useColorPicker();
 
     const backgroundGradient = useMemo(() => {
       return `linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0)),
             linear-gradient(90deg, rgba(255,255,255,1), rgba(255,255,255,0)),
             hsl(${hue}, 100%, 50%)`;
     }, [hue]);
+
+    // Put the marker on the colour the picker was opened with. Without this it
+    // sits at the top left of the square whatever the colour is, so opening the
+    // picker on a saved colour looked like the colour had been lost. Skipped
+    // mid-drag, when the pointer owns the position instead.
+    useEffect(() => {
+      if (isDragging) {
+        return;
+      }
+      const x = saturation / 100;
+      const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x);
+      const y = topLightness === 0 ? 0 : 1 - lightness / topLightness;
+
+      setPositionX(Math.max(0, Math.min(1, x)));
+      setPositionY(Math.max(0, Math.min(1, y)));
+    }, [saturation, lightness, isDragging]);
 
     const handlePointerMove = useCallback(
       (event: PointerEvent) => {
@@ -185,9 +202,19 @@ export const ColorPickerSelection = memo(
 
     return (
       <div
-        className={cn("relative size-full cursor-crosshair rounded", className)}
+        // touch-none is load bearing. Without touch-action: none the browser
+        // claims the gesture for panning the moment the finger moves, fires
+        // pointercancel, and the drag never reaches the move handler. The hue
+        // slider ships the same class for the same reason.
+        className={cn(
+          "relative size-full cursor-crosshair touch-none rounded",
+          className
+        )}
         onPointerDown={(e) => {
           e.preventDefault();
+          // Capture keeps the drag alive once the finger leaves the square,
+          // rather than stopping at its edge.
+          e.currentTarget.setPointerCapture(e.pointerId);
           setIsDragging(true);
           handlePointerMove(e.nativeEvent);
         }}

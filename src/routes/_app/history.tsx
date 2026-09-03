@@ -2,6 +2,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { History as HistoryIcon } from 'lucide-react'
 import { useState } from 'react'
+import { CourseMark } from '#/components/course-icon'
 import { DateTimeText } from '#/components/date-time'
 import { Pill } from '#/components/kibo-ui/pill'
 import { RevealMore, useReveal } from '#/components/reveal'
@@ -146,7 +147,15 @@ function History() {
                 <ItemTitle className="w-full truncate">{item.name}</ItemTitle>
                 <ItemDescription className="flex flex-wrap items-center gap-x-2">
                   {item.course && (
-                    <span>{item.course.code ?? item.course.name}</span>
+                    <span className="flex items-center gap-1">
+                      <CourseMark
+                        className="size-3.5"
+                        color={item.course.color}
+                        dotClassName="size-1.5 bg-muted-foreground"
+                        icon={item.course.icon}
+                      />
+                      {item.course.code ?? item.course.name}
+                    </span>
                   )}
                   <span className="capitalize">{item.type}</span>
                   {item.completedAt ? (

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { CourseMark } from '#/components/course-icon'
 import { DayTooltip } from '#/components/day-tooltip'
 import { DayDetail } from '#/components/schedule-calendar'
 import { Button } from '#/components/ui/button'
@@ -210,12 +211,11 @@ export function WeekStrip({
                     className="flex items-center gap-1 truncate text-[11px]"
                     key={course.id}
                   >
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: course.color ?? 'var(--primary)',
-                      }}
+                    <CourseMark
+                      className="size-3"
+                      color={course.color}
+                      dotClassName="size-1.5 bg-primary"
+                      icon={course.icon}
                     />
                     <span className="truncate">
                       {course.code ?? course.name}
@@ -229,9 +229,11 @@ export function WeekStrip({
                         className="flex items-start gap-1 text-[11px] leading-tight"
                         key={item.id}
                       >
-                        <span
-                          aria-hidden="true"
-                          className="mt-1 size-1 shrink-0 rounded-full bg-foreground"
+                        <CourseMark
+                          className="mt-0.5 size-3"
+                          color={item.course?.color}
+                          dotClassName="mt-1 size-1 bg-foreground"
+                          icon={item.course?.icon}
                         />
                         <span className="line-clamp-2">{item.name}</span>
                       </p>

@@ -306,7 +306,7 @@ The display zone is pinned in [src/lib/datetime.ts](./src/lib/datetime.ts) rathe
 
 ### Course colours and icons
 
-A course carries a hex colour and one of a hundred icons. Both appear wherever the course does: the Today list, the command palette, the course cards and the item detail.
+A course carries a hex colour and one of a hundred icons. Both appear wherever the course does: the Today list, the week strip, the month calendar and its day panel, the day plan, history, the command palette and the item detail. Anything belonging to a course takes that course's mark, so a task reads as the class it came from. A course with no icon falls back to a dot in its colour, which is what these lists drew before icons existed.
 
 The colour also reaches your calendar. Google Calendar takes no hex. It takes one of eleven fixed event colours, and Notion Calendar draws an event in whatever colour Google reports for it. So [src/lib/google-color.ts](./src/lib/google-color.ts) maps a course colour onto the nearest of the eleven. It compares in CIE Lab rather than RGB. In RGB, pure blue and pure green sit as far apart as two blues you cannot tell apart. The formula is CIEDE2000, which corrects for the blues. Without that correction `#0000ff` lands on Grape instead of Blueberry.
 

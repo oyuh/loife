@@ -254,3 +254,40 @@ export function CourseIcon({
     />
   )
 }
+
+/**
+ * The mark that stands for a course: its icon when it has one, a dot in its
+ * colour when it does not.
+ *
+ * One component because a dozen lists were each drawing their own dot, and
+ * once a course can carry an icon they all have to make the same choice. An
+ * item with no course passes nothing and keeps whatever `dotClassName` says,
+ * which is how the neutral dots stay neutral.
+ */
+export function CourseMark({
+  color,
+  icon,
+  className,
+  dotClassName,
+}: {
+  color?: string | null
+  icon?: string | null
+  /** Sizing for the icon. */
+  className?: string
+  /** Sizing and shape for the dot, including its colour when there is none. */
+  dotClassName?: string
+}) {
+  if (hasCourseIcon(icon)) {
+    return <CourseIcon className={className} color={color} name={icon} />
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn('shrink-0 rounded-full', dotClassName)}
+      // Beats the class when the course has a colour, and leaves the class to
+      // decide when it does not.
+      style={color ? { backgroundColor: color } : undefined}
+    />
+  )
+}

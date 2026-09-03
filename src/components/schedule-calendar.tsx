@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Circle } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { CourseMark } from '#/components/course-icon'
 import { DayTooltip } from '#/components/day-tooltip'
 import { Button } from '#/components/ui/button'
 import { trimSeconds } from '#/lib/course-event'
@@ -276,10 +277,11 @@ function Legend({ courses }: { courses: CourseRow[] }) {
       ) : (
         courses.map((course) => (
           <span className="flex items-center gap-1.5" key={course.id}>
-            <span
-              aria-hidden="true"
-              className="h-1 w-1.5 rounded-full"
-              style={{ backgroundColor: course.color ?? 'var(--primary)' }}
+            <CourseMark
+              className="size-3"
+              color={course.color}
+              dotClassName="h-1 w-1.5 bg-primary"
+              icon={course.icon}
             />
             {course.code ?? course.name}
           </span>
@@ -327,10 +329,11 @@ export function DayDetail({
           className="flex items-baseline gap-2 text-muted-foreground text-xs"
           key={course.id}
         >
-          <span
-            aria-hidden="true"
-            className="h-1 w-3 shrink-0 translate-y-[-3px] rounded-full"
-            style={{ backgroundColor: course.color ?? 'var(--primary)' }}
+          <CourseMark
+            className="size-3.5 translate-y-[1px]"
+            color={course.color}
+            dotClassName="h-1 w-3 translate-y-[-3px] bg-primary"
+            icon={course.icon}
           />
           <span className="min-w-0 truncate">
             {course.code ?? course.name}
@@ -346,9 +349,11 @@ export function DayDetail({
 
       {contents?.due.map((item) => (
         <p className="flex items-baseline gap-2 text-sm" key={item.id}>
-          <span
-            aria-hidden="true"
-            className="size-1.5 shrink-0 translate-y-[-2px] rounded-full bg-foreground"
+          <CourseMark
+            className="size-3.5 translate-y-[2px]"
+            color={item.course?.color}
+            dotClassName="size-1.5 translate-y-[-2px] bg-foreground"
+            icon={item.course?.icon}
           />
           <span className="min-w-0 truncate">{item.name}</span>
           <span className="ml-auto shrink-0 text-muted-foreground text-xs capitalize">
