@@ -14,6 +14,7 @@ import { useMemo, useState } from 'react'
 import { CalendarStatus } from '#/components/calendar-status'
 import { CourseDialog } from '#/components/course-dialog'
 import { DateTimeText, DayWithRelative } from '#/components/date-time'
+import { DayTooltip } from '#/components/day-tooltip'
 import { Pill } from '#/components/kibo-ui/pill'
 import { ScheduleCalendar } from '#/components/schedule-calendar'
 import { Button } from '#/components/ui/button'
@@ -264,9 +265,11 @@ function CourseCard({
               </span>
             )}
             {next && (
-              <span className="text-muted-foreground">
-                next {formatKeyDay(next)}
-              </span>
+              <DayTooltip dayKey={next} meetings={[course]}>
+                <span className="cursor-help text-muted-foreground">
+                  next {formatKeyDay(next)}
+                </span>
+              </DayTooltip>
             )}
           </div>
         </div>

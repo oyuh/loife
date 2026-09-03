@@ -139,7 +139,7 @@ export function JournalDialog({
     return (
       <Drawer onOpenChange={close} open={entryId !== null}>
         <DrawerContent className="max-h-[92dvh]">
-          <DrawerHeader className="text-left">
+          <DrawerHeader>
             <DrawerTitle>{heading}</DrawerTitle>
           </DrawerHeader>
           <div className="overflow-y-auto px-4">{content}</div>

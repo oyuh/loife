@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BookOpen,
-  CalendarIcon,
   ChevronDown,
   FileText,
   GraduationCap,
@@ -10,11 +9,11 @@ import {
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { AttachmentsList, attachmentsKey } from '#/components/attachments-list'
+import { DateField } from '#/components/date-field'
 import { MarkdownField } from '#/components/markdown-field'
 import { StagedFiles } from '#/components/staged-files'
 import { TimeField } from '#/components/time-field'
 import { Button } from '#/components/ui/button'
-import { Calendar } from '#/components/ui/calendar'
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,7 +22,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -31,7 +29,6 @@ import {
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -44,11 +41,6 @@ import {
 } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '#/components/ui/popover'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -56,7 +48,6 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
-import { formatKeyDay } from '#/lib/datetime'
 import { toDueFields, toDueValue } from '#/lib/due-date'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
 import {
@@ -236,9 +227,6 @@ export function AddItemDialog({
   }
 
   const title = item ? 'Edit' : 'Add anything'
-  const description = item
-    ? 'Changes reach your calendar straight away.'
-    : 'A to do, an assignment, a reading, an exam. Only the name is required.'
 
   const body = (
     <ItemForm
@@ -266,9 +254,8 @@ export function AddItemDialog({
     return (
       <Drawer onOpenChange={close} open={open}>
         <DrawerContent className="max-h-[92dvh]">
-          <DrawerHeader className="text-left">
+          <DrawerHeader>
             <DrawerTitle>{title}</DrawerTitle>
-            <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
           <div className="overflow-y-auto px-4">{body}</div>
           <DrawerFooter>{submit}</DrawerFooter>
@@ -282,7 +269,6 @@ export function AddItemDialog({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {body}
         <DialogFooter>{submit}</DialogFooter>
@@ -317,6 +303,8 @@ function ItemForm({
   onSubmit: () => void
 }) {
   const nameId = useId()
+  const dateId = useId()
+  const timeId = useId()
   const locationId = useId()
   const notesId = useId()
   const [showMore, setShowMore] = useState(false)
@@ -324,8 +312,6 @@ function ItemForm({
 
   const set = <K extends keyof typeof EMPTY>(key: K, value: string) =>
     onChange({ ...form, [key]: value })
-
-  const due = form.date ? new Date(`${form.date}T00:00:00`) : undefined
 
   const isCourseWork = COURSE_WORK.includes(form.type)
   /*
@@ -437,41 +423,33 @@ function ItemForm({
             wants more room than it was given drags the row past the edge of
             the screen with it. A grid track cannot be argued with.
           */}
-          <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-2 sm:grid-cols-[minmax(0,1fr)_9.5rem]">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  className={cn(
-                    'h-11 min-w-0 flex-1 justify-start font-normal',
-                    !form.date && 'text-muted-foreground',
-                  )}
-                  type="button"
-                  variant="outline"
-                >
-                  <CalendarIcon className="mr-2 size-4 shrink-0" />
-                  <span className="truncate">
-                    {form.date ? formatKeyDay(form.date) : 'No due date'}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  onSelect={(next) =>
-                    set(
-                      'date',
-                      next
-                        ? toDueFields({ dueAt: next, allDay: true }).date
-                        : '',
-                    )
-                  }
-                  selected={due}
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2 sm:grid-cols-[minmax(0,1fr)_9.5rem]">
+            {/* Each column says which half of "Due" it is. The two controls
+                look alike on a phone, where both are native boxes. */}
+            <div className="min-w-0 space-y-1.5">
+              <FieldLabel
+                className="text-muted-foreground text-xs"
+                htmlFor={dateId}
+              >
+                Date
+              </FieldLabel>
+              <DateField
+                id={dateId}
+                label="Due date, optional"
+                onChange={(value) => set('date', value)}
+                value={form.date}
+              />
+            </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 space-y-1.5">
+              <FieldLabel
+                className="text-muted-foreground text-xs"
+                htmlFor={timeId}
+              >
+                Time
+              </FieldLabel>
               <TimeField
+                id={timeId}
                 label="Time, optional"
                 onChange={(value) => set('time', value)}
                 value={form.time}

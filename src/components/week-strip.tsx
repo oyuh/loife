@@ -1,16 +1,25 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { DayTooltip } from '#/components/day-tooltip'
+import { DayDetail } from '#/components/schedule-calendar'
 import { Button } from '#/components/ui/button'
-import { trimSeconds } from '#/lib/course-event'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '#/components/ui/drawer'
 import { meetsOnKey, weekKeys } from '#/lib/course-schedule'
 import {
+  formatKeyDayLong,
   formatKeyMonthDay,
   formatKeyWeekdayShort,
   shiftDateKey,
   toDateKey,
   todayKey,
 } from '#/lib/datetime'
-import { formatTime } from '#/lib/parse-time'
+import { useMediaQuery } from '#/lib/use-media-query'
 import { cn } from '#/lib/utils'
 import type { CourseRow } from '#/server/courses'
 import type { ItemRow } from '#/server/items'
@@ -43,16 +52,23 @@ export function WeekStrip({
   const [anchor, setAnchor] = useState(today)
   const keys = useMemo(() => weekKeys(anchor), [anchor])
   const rail = useRef<HTMLDivElement>(null)
+  const isDesktop = useMediaQuery('(min-width: 640px)')
 
-  /** Meetings and due work for each day of the week on screen. */
+  /** The day whose drawer is open, on a phone. Null when nothing is open. */
+  const [openKey, setOpenKey] = useState<string | null>(null)
+  const list = useRef<HTMLDivElement>(null)
+
+  /** Meetings, due work and finished work for each day of the week on screen. */
   const week = useMemo(() => {
     const dueByKey = new Map<string, ItemRow[]>()
+    const doneByKey = new Map<string, ItemRow[]>()
     for (const item of items) {
-      if (!item.dueAt || item.status === 'done') continue
+      if (!item.dueAt) continue
       const key = toDateKey(item.dueAt)
-      const existing = dueByKey.get(key)
+      const into = item.status === 'done' ? doneByKey : dueByKey
+      const existing = into.get(key)
       if (existing) existing.push(item)
-      else dueByKey.set(key, [item])
+      else into.set(key, [item])
     }
 
     return keys.map((key) => ({
@@ -61,6 +77,8 @@ export function WeekStrip({
         .filter((course) => course.active && meetsOnKey(course, key))
         .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? '')),
       due: dueByKey.get(key) ?? [],
+      // Only the drawer has room for what is already finished.
+      done: doneByKey.get(key) ?? [],
     }))
   }, [courses, items, keys])
 
@@ -85,6 +103,20 @@ export function WeekStrip({
     element.scrollLeft =
       cell.offsetLeft - (element.clientWidth - cell.offsetWidth) / 2
   }, [])
+
+  // Open the drawer on the day that was tapped rather than on Sunday. Measured
+  // against the container rather than through `scrollIntoView`, for the same
+  // reason as the rail above: that one walks up the tree and moves the page.
+  useEffect(() => {
+    const node = list.current
+    if (!node || !openKey) return
+
+    const target = node.querySelector<HTMLElement>('[data-open]')
+    if (!target) return
+
+    node.scrollTop +=
+      target.getBoundingClientRect().top - node.getBoundingClientRect().top
+  }, [openKey])
 
   return (
     <section>
@@ -147,17 +179,14 @@ export function WeekStrip({
       >
         {week.map((day) => {
           const isToday = day.key === today
+          const shell = cn(
+            'shrink-0 snap-start rounded-md border border-border p-2 sm:w-auto',
+            detailed ? 'w-[8.5rem]' : 'w-[6.5rem]',
+            isToday ? 'bg-accent/60' : 'bg-card/40',
+          )
 
-          return (
-            <div
-              className={cn(
-                'shrink-0 snap-start rounded-md border border-border p-2 sm:w-auto',
-                detailed ? 'w-[8.5rem]' : 'w-[6.5rem]',
-                isToday ? 'bg-accent/60' : 'bg-card/40',
-              )}
-              data-today={isToday ? '' : undefined}
-              key={day.key}
-            >
+          const contents = (
+            <>
               <p
                 className={cn(
                   'text-[10px] uppercase tracking-wide',
@@ -180,11 +209,6 @@ export function WeekStrip({
                   <p
                     className="flex items-center gap-1 truncate text-[11px]"
                     key={course.id}
-                    title={
-                      course.startTime
-                        ? `${course.code ?? course.name} at ${formatTime(trimSeconds(course.startTime))}`
-                        : (course.code ?? course.name)
-                    }
                   >
                     <span
                       aria-hidden="true"
@@ -204,7 +228,6 @@ export function WeekStrip({
                       <p
                         className="flex items-start gap-1 text-[11px] leading-tight"
                         key={item.id}
-                        title={item.name}
                       >
                         <span
                           aria-hidden="true"
@@ -229,10 +252,80 @@ export function WeekStrip({
                   <p className="text-[11px] text-muted-foreground/50">—</p>
                 )}
               </div>
-            </div>
+            </>
+          )
+
+          /*
+           * A phone has no hover, so the panel the tooltip carries on a
+           * desktop becomes something you tap for instead. The cell turns
+           * into a real button rather than a div with a click handler, so it
+           * is reachable by keyboard and announced as something to press.
+           */
+          if (!isDesktop) {
+            return (
+              <button
+                aria-label={`${formatKeyDayLong(day.key)}, see the week`}
+                className={cn(shell, 'text-left')}
+                data-today={isToday ? '' : undefined}
+                key={day.key}
+                onClick={() => setOpenKey(day.key)}
+                type="button"
+              >
+                {contents}
+              </button>
+            )
+          }
+
+          return (
+            <DayTooltip
+              dayKey={day.key}
+              done={day.done}
+              due={day.due}
+              key={day.key}
+              meetings={day.meetings}
+            >
+              <div className={cn(shell, 'cursor-help')}>{contents}</div>
+            </DayTooltip>
           )
         })}
       </div>
+
+      {/*
+        The whole week in one scroll, opened at the day that was tapped.
+        Every day rather than only that one, because the reason to open
+        Wednesday is usually to find out whether Thursday is worse.
+      */}
+      <Drawer
+        onOpenChange={(next) => {
+          if (!next) setOpenKey(null)
+        }}
+        open={openKey !== null}
+      >
+        <DrawerContent className="max-h-[85dvh]">
+          <DrawerHeader>
+            <DrawerTitle>{label}</DrawerTitle>
+            <DrawerDescription>
+              {isThisWeek ? 'This week, day by day.' : 'That week, day by day.'}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="space-y-3 overflow-y-auto px-4 pb-6" ref={list}>
+            {week.map((day) => (
+              <div
+                // Marks where the tap landed, so scrolling away and back
+                // still shows which day you came in on.
+                className={cn(
+                  'rounded-md',
+                  day.key === openKey && 'ring-2 ring-ring/50',
+                )}
+                data-open={day.key === openKey ? '' : undefined}
+                key={day.key}
+              >
+                <DayDetail contents={day} dayKey={day.key} />
+              </div>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </section>
   )
 }

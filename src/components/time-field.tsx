@@ -273,18 +273,30 @@ export function TimeField({
 
   return (
     <>
-      <Input
-        className={cn('h-11 sm:hidden', className)}
-        id={id}
-        onChange={(event) => {
-          const next = event.target.value
-          // A native time input reports half finished edits as well. Callers
-          // save what they are handed, so only a complete time gets through.
-          if (!next || parseTime(next)) onChange(next)
-        }}
-        type="time"
-        value={value}
-      />
+      {/* Empty draws as a blank box on iOS, so it says what it is instead.
+          Same trick as the date field next to it. */}
+      <div className={cn('relative sm:hidden', className)}>
+        <Input
+          className={cn('h-11', !value && 'text-transparent')}
+          id={id}
+          onChange={(event) => {
+            const next = event.target.value
+            // A native time input reports half finished edits as well. Callers
+            // save what they are handed, so only a complete time gets through.
+            if (!next || parseTime(next)) onChange(next)
+          }}
+          type="time"
+          value={value}
+        />
+        {!value && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-2 left-3 flex items-center truncate text-base text-muted-foreground"
+          >
+            Pick a time
+          </span>
+        )}
+      </div>
 
       <div className={cn('relative hidden sm:block', className)}>
         {/* The native input above owns `id`, so this one is named instead

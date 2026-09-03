@@ -181,7 +181,7 @@ export function CourseDialog({
     return (
       <Drawer onOpenChange={close} open={open}>
         <DrawerContent className="max-h-[92dvh]">
-          <DrawerHeader className="text-left">
+          <DrawerHeader>
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>

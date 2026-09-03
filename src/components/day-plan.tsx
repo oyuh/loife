@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { ClockText } from '#/components/date-time'
 import {
   Collapsible,
   CollapsibleContent,
@@ -142,7 +143,8 @@ export function DayPlan({ items }: { items: ItemRow[] }) {
                 key={`${block.item.id}-${+block.start}`}
               >
                 <span className="w-28 shrink-0 text-muted-foreground tabular-nums">
-                  {formatClock(block.start)} – {formatClock(block.end)}
+                  <ClockText value={block.start} /> –{' '}
+                  <ClockText value={block.end} />
                 </span>
                 <span className="min-w-0 flex-1 truncate">
                   {block.kind === 'study' && (

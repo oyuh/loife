@@ -193,7 +193,7 @@ export function ItemDetail({
     return (
       <Drawer onOpenChange={onOpenChange} open>
         <DrawerContent className="max-h-[92dvh]">
-          <DrawerHeader className="text-left">
+          <DrawerHeader>
             <DrawerTitle className="pr-8">{heading}</DrawerTitle>
             <DrawerDescription>{subtitle}</DrawerDescription>
           </DrawerHeader>

@@ -135,7 +135,7 @@ export function JournalComposeDialog({
           clears it, which is why that one has always behaved.
         */}
         <DrawerContent className="h-[92dvh] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]">
-          <DrawerHeader className="text-left">
+          <DrawerHeader>
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>

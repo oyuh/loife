@@ -52,11 +52,7 @@ export function Preferences() {
 
   return (
     <div className="space-y-1.5 rounded-lg border border-border p-4">
-      <p className="font-medium text-sm">Hide finished work</p>
-      <p className="text-muted-foreground text-sm">
-        Ticking is one tap and easy to do by accident, so nothing disappears
-        immediately. Left to itself a P1 lingers two hours and a P5 ten minutes.
-      </p>
+      <p className="font-medium text-sm">Hide finished work after</p>
       <Select onValueChange={(value) => save.mutate(value)} value={current}>
         <SelectTrigger
           aria-label="Hide finished work"
@@ -105,10 +101,6 @@ export function DayWindow() {
   return (
     <div className="space-y-1.5 rounded-lg border border-border p-4">
       <p className="font-medium text-sm">Hours to plan into</p>
-      <p className="text-muted-foreground text-sm">
-        Plan my day only suggests times inside this window, and never over a
-        class.
-      </p>
       <div className="mt-2 flex flex-wrap gap-3">
         <div className="space-y-1.5">
           <label className="text-muted-foreground text-xs" htmlFor="day-start">

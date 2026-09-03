@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react'
 import { AttachmentsList } from '#/components/attachments-list'
 import { AttachmentsPanel } from '#/components/attachments-panel'
 import { DateField } from '#/components/date-field'
+import { DayTooltip } from '#/components/day-tooltip'
 import { Pill } from '#/components/kibo-ui/pill'
 import { Markdown } from '#/components/markdown'
 import { RevealMore, useReveal } from '#/components/reveal'
@@ -214,17 +215,19 @@ function DayEntry({
   return (
     <article className="flex gap-4">
       {/* A date rail down the left, the way a paper journal reads. */}
-      <div
-        className={cn(
-          'w-12 shrink-0 pt-0.5 text-right',
-          isToday ? 'text-primary' : 'text-muted-foreground',
-        )}
-      >
-        <p className="font-semibold text-2xl leading-none tabular-nums">
-          {formatKeyDayNumber(day.date)}
-        </p>
-        <p className="mt-1 text-xs">{formatKeyWeekday(day.date)}</p>
-      </div>
+      <DayTooltip dayKey={day.date}>
+        <div
+          className={cn(
+            'w-12 shrink-0 cursor-help pt-0.5 text-right',
+            isToday ? 'text-primary' : 'text-muted-foreground',
+          )}
+        >
+          <p className="font-semibold text-2xl leading-none tabular-nums">
+            {formatKeyDayNumber(day.date)}
+          </p>
+          <p className="mt-1 text-xs">{formatKeyWeekday(day.date)}</p>
+        </div>
+      </DayTooltip>
 
       <div className="min-w-0 flex-1 space-y-2 border-border border-l pl-4">
         <div className="flex min-h-8 items-center gap-2">

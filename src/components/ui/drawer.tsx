@@ -75,7 +75,11 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="drawer-header"
       className={cn(
-        'flex flex-col gap-0.5 p-4 group-data-[vaul-drawer-direction=bottom]/drawer-content:text-center group-data-[vaul-drawer-direction=top]/drawer-content:text-center md:gap-1.5 md:text-left',
+        // Left aligned, the same as the dialog this becomes above `sm`.
+        // Centering came from the shadcn default, and a variant beats a plain
+        // `text-left` passed in by a caller on specificity, so the call sites
+        // that asked for left were being overruled.
+        'flex flex-col gap-0.5 p-4 text-left md:gap-1.5',
         className,
       )}
       {...props}

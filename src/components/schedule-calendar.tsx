@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Circle } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { DayTooltip } from '#/components/day-tooltip'
 import { Button } from '#/components/ui/button'
 import { trimSeconds } from '#/lib/course-event'
 import { meetsOnKey, monthGridKeys } from '#/lib/course-schedule'
@@ -179,62 +180,69 @@ export function ScheduleCalendar({
           const marks = (day?.due.length ?? 0) + (day?.done.length ?? 0)
 
           return (
-            <button
-              aria-current={isToday ? 'date' : undefined}
-              aria-label={[
-                formatKeyDayLong(key),
-                meetings.length === 1
-                  ? `${meetings[0].code ?? meetings[0].name} meets`
-                  : meetings.length > 1
-                    ? `${meetings.length} classes`
-                    : null,
-                day?.due.length ? `${day.due.length} due` : null,
-              ]
-                .filter(Boolean)
-                .join(', ')}
-              aria-pressed={isSelected}
-              className={cn(
-                'relative flex min-h-11 flex-col items-center justify-center rounded-md text-sm tabular-nums transition-colors',
-                'hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-1',
-                outside && 'text-muted-foreground/40',
-                isToday && 'font-semibold text-primary',
-                isSelected && 'bg-accent',
-              )}
+            <DayTooltip
+              dayKey={key}
+              done={day?.done}
+              due={day?.due}
               key={key}
-              onClick={() => setSelected(isSelected ? null : key)}
-              type="button"
+              meetings={meetings}
             >
-              <span>{Number(key.slice(-2))}</span>
-
-              {/*
-                Two marks, never merged. A bar per class that meets, and a dot
-                if work is due, because a day is very often both.
-              */}
-              <span className="mt-0.5 flex h-1.5 items-center justify-center gap-0.5">
-                {meetings.slice(0, MAX_BARS).map((course) => (
-                  <span
-                    className={cn(
-                      'h-1 rounded-full',
-                      meetings.length === 1 ? 'w-3' : 'w-1.5',
-                    )}
-                    key={course.id}
-                    style={{
-                      backgroundColor: course.color ?? 'var(--primary)',
-                    }}
-                  />
-                ))}
-                {marks > 0 && (
-                  <span
-                    className={cn(
-                      'size-1 rounded-full',
-                      day?.due.length
-                        ? 'bg-foreground'
-                        : 'bg-muted-foreground/50',
-                    )}
-                  />
+              <button
+                aria-current={isToday ? 'date' : undefined}
+                aria-label={[
+                  formatKeyDayLong(key),
+                  meetings.length === 1
+                    ? `${meetings[0].code ?? meetings[0].name} meets`
+                    : meetings.length > 1
+                      ? `${meetings.length} classes`
+                      : null,
+                  day?.due.length ? `${day.due.length} due` : null,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+                aria-pressed={isSelected}
+                className={cn(
+                  'relative flex min-h-11 flex-col items-center justify-center rounded-md text-sm tabular-nums transition-colors',
+                  'hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-1',
+                  outside && 'text-muted-foreground/40',
+                  isToday && 'font-semibold text-primary',
+                  isSelected && 'bg-accent',
                 )}
-              </span>
-            </button>
+                onClick={() => setSelected(isSelected ? null : key)}
+                type="button"
+              >
+                <span>{Number(key.slice(-2))}</span>
+
+                {/*
+                  Two marks, never merged. A bar per class that meets, and a dot
+                  if work is due, because a day is very often both.
+                */}
+                <span className="mt-0.5 flex h-1.5 items-center justify-center gap-0.5">
+                  {meetings.slice(0, MAX_BARS).map((course) => (
+                    <span
+                      className={cn(
+                        'h-1 rounded-full',
+                        meetings.length === 1 ? 'w-3' : 'w-1.5',
+                      )}
+                      key={course.id}
+                      style={{
+                        backgroundColor: course.color ?? 'var(--primary)',
+                      }}
+                    />
+                  ))}
+                  {marks > 0 && (
+                    <span
+                      className={cn(
+                        'size-1 rounded-full',
+                        day?.due.length
+                          ? 'bg-foreground'
+                          : 'bg-muted-foreground/50',
+                      )}
+                    />
+                  )}
+                </span>
+              </button>
+            </DayTooltip>
           )
         })}
       </div>
@@ -292,8 +300,13 @@ function Legend({ courses }: { courses: CourseRow[] }) {
   )
 }
 
-/** What is actually on the chosen day, which is the point of picking one. */
-function DayDetail({
+/**
+ * What is actually on the chosen day, which is the point of picking one.
+ *
+ * Exported because the week strip's drawer is seven of these in a column, and
+ * a second rendering of "here is a day" would drift from this one.
+ */
+export function DayDetail({
   dayKey,
   contents,
 }: {

@@ -61,13 +61,30 @@ export function DateField({
 
   return (
     <>
-      <Input
-        className={cn('h-11 sm:hidden', className)}
-        id={id}
-        onChange={(event) => onChange(event.target.value)}
-        type="date"
-        value={value}
-      />
+      {/*
+        An empty date input draws nothing at all on iOS, and `mm/dd/yyyy` on
+        Chrome, so an untouched field reads as either a blank box or a format
+        hint rather than as a date. The native text is made transparent while
+        the field is empty and this placeholder sits over it, which matches
+        the desktop button next to it.
+      */}
+      <div className={cn('relative sm:hidden', className)}>
+        <Input
+          className={cn('h-11', !value && 'text-transparent')}
+          id={id}
+          onChange={(event) => onChange(event.target.value)}
+          type="date"
+          value={value}
+        />
+        {!value && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-2 left-3 flex items-center truncate text-base text-muted-foreground"
+          >
+            Pick a date
+          </span>
+        )}
+      </div>
 
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>
