@@ -213,8 +213,13 @@ export const ColorPickerSelection = memo(
         onPointerDown={(e) => {
           e.preventDefault();
           // Capture keeps the drag alive once the finger leaves the square,
-          // rather than stopping at its edge.
-          e.currentTarget.setPointerCapture(e.pointerId);
+          // rather than stopping at its edge. Not every pointer can be
+          // captured, so a refusal must not take the drag down with it.
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            // Dragging still works through the window listeners below.
+          }
           setIsDragging(true);
           handlePointerMove(e.nativeEvent);
         }}
