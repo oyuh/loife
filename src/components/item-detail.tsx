@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { CalendarClock, Check, Pencil, Trash2, Undo2 } from 'lucide-react'
 import { AttachmentsList } from '#/components/attachments-list'
+import { CourseIcon } from '#/components/course-icon'
 import { DateTimeText } from '#/components/date-time'
 import { Pill, PillIndicator } from '#/components/kibo-ui/pill'
 import { Markdown } from '#/components/markdown'
@@ -178,6 +179,11 @@ export function ItemDetail({
   const heading = (
     <>
       <span className="flex items-center gap-2">
+        <CourseIcon
+          className="size-4"
+          color={item.course?.color}
+          name={item.course?.icon}
+        />
         <span className="truncate">{item.name}</span>
         {item.priority !== 3 && (
           <Pill className="shrink-0">

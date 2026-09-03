@@ -43,7 +43,13 @@ export const courses = pgTable('courses', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   code: text('code'),
+  // A hex string. Drawn as-is in the app, and mapped to the nearest of Google
+  // Calendar's eleven event colours on the way out, which is what reaches
+  // Notion Calendar. See lib/google-color.ts.
   color: text('color'),
+  // A lucide export name from lib/course-icon.ts, drawn beside the course
+  // wherever it appears. Null means fall back to the colour bar alone.
+  icon: text('icon'),
   term: text('term'),
   // Bounds the RRULE on the recurring Google Calendar event.
   termStart: date('term_start'),

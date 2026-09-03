@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { courses, items } from '#/db/schema'
 import { toCalendarEvent } from '#/lib/calendar-event'
@@ -35,6 +35,7 @@ export async function syncItem(itemId: number): Promise<void> {
         googleEventId: items.googleEventId,
         courseCode: courses.code,
         courseName: courses.name,
+        courseColor: courses.color,
       })
       .from(items)
       .leftJoin(courses, eq(items.courseId, courses.id))
@@ -47,6 +48,7 @@ export async function syncItem(itemId: number): Promise<void> {
 
     const event = toCalendarEvent(row, {
       courseLabel: row.courseCode ?? row.courseName,
+      courseColor: row.courseColor,
       timeZone: timeZone(),
     })
 
@@ -86,6 +88,39 @@ async function markSynced(itemId: number, eventId: string) {
     .update(items)
     .set({ googleEventId: eventId, syncedAt: sql`${items.updatedAt}` })
     .where(eq(items.id, itemId))
+}
+
+/**
+ * Re-pushes every dated item on a course, because something about the course
+ * itself changed the events its items produce.
+ *
+ * Only the colour does that today. An item's event carries its course's
+ * colour, and editing the course leaves the items' own rows untouched, so
+ * without this a recoloured course would keep pushing the old colour to Notion
+ * until each item happened to be edited for some other reason.
+ *
+ * Clearing `syncedAt` first is what makes a failure recoverable: the row is
+ * marked as owing a push before the push is attempted, so the reconcile sweep
+ * picks up whatever Google refused.
+ */
+export async function syncCourseItems(courseId: number): Promise<void> {
+  try {
+    const rows = await db
+      .select({ id: items.id })
+      .from(items)
+      .where(and(eq(items.courseId, courseId), isNotNull(items.dueAt)))
+
+    if (rows.length === 0) return
+
+    await db
+      .update(items)
+      .set({ syncedAt: null })
+      .where(and(eq(items.courseId, courseId), isNotNull(items.dueAt)))
+
+    for (const row of rows) await syncItem(row.id)
+  } catch (error) {
+    console.error(`calendar resync failed for course ${courseId}:`, error)
+  }
 }
 
 export async function removeItemEvent(eventId: string | null): Promise<void> {

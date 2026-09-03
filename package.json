@@ -27,6 +27,7 @@
     "check:plan": "node --experimental-strip-types scripts/check-plan.ts",
     "check:time": "node --experimental-strip-types scripts/check-time.ts",
     "check:contrast": "node --experimental-strip-types scripts/check-contrast.ts",
+    "check:color": "node --experimental-strip-types scripts/check-color.ts",
     "check:layout": "node --experimental-strip-types scripts/check-layout.ts",
     "check:datetime": "node --experimental-strip-types scripts/check-datetime.ts",
     "check:schedule": "node --experimental-strip-types scripts/check-schedule.ts",

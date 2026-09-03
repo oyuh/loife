@@ -2,7 +2,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
+import { ColorField } from '#/components/color-field'
 import { DateField } from '#/components/date-field'
+import { IconField } from '#/components/icon-field'
 import { InstructorField } from '#/components/instructor-field'
 import { MarkdownField } from '#/components/markdown-field'
 import { TimeField } from '#/components/time-field'
@@ -34,26 +36,16 @@ import {
 } from '#/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { trimSeconds, WEEKDAYS } from '#/lib/course-event'
+import { COURSE_COLORS } from '#/lib/google-color'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
 import { useMediaQuery } from '#/lib/use-media-query'
 import { type CourseRow, createCourse, updateCourse } from '#/server/courses'
 
-/** A small fixed set beats a full colour picker for tagging a handful of classes. */
-const COLORS = [
-  '#3b82f6',
-  '#22c55e',
-  '#a855f7',
-  '#f59e0b',
-  '#ef4444',
-  '#06b6d4',
-  '#ec4899',
-  '#84cc16',
-]
-
 const EMPTY = {
   name: '',
   code: '',
-  color: COLORS[0],
+  color: COURSE_COLORS[0],
+  icon: null as string | null,
   term: '',
   termStart: '',
   termEnd: '',
@@ -76,7 +68,8 @@ function fromCourse(course: CourseRow): Form {
   return {
     name: course.name,
     code: course.code ?? '',
-    color: course.color ?? COLORS[0],
+    color: course.color ?? COURSE_COLORS[0],
+    icon: course.icon,
     term: course.term ?? '',
     termStart: course.termStart ?? '',
     termEnd: course.termEnd ?? '',
@@ -121,6 +114,7 @@ export function CourseDialog({
         name: form.name,
         code: form.code,
         color: form.color,
+        icon: form.icon,
         term: form.term,
         termStart: form.termStart || null,
         termEnd: form.termEnd || null,
@@ -268,23 +262,19 @@ function CourseForm({
 
         <Field>
           <FieldLabel>Colour</FieldLabel>
-          <div className="flex flex-wrap gap-2">
-            {COLORS.map((color) => (
-              <button
-                aria-label={color}
-                aria-pressed={form.color === color}
-                className="size-9 rounded-full border-2 transition-colors"
-                key={color}
-                onClick={() => set('color', color)}
-                style={{
-                  backgroundColor: color,
-                  borderColor:
-                    form.color === color ? 'var(--foreground)' : 'transparent',
-                }}
-                type="button"
-              />
-            ))}
-          </div>
+          <ColorField
+            onChange={(color) => set('color', color)}
+            value={form.color}
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel>Icon</FieldLabel>
+          <IconField
+            color={form.color}
+            onChange={(icon) => set('icon', icon)}
+            value={form.icon}
+          />
         </Field>
 
         <Field>

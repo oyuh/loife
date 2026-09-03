@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from 'react'
 import { CalendarStatus } from '#/components/calendar-status'
 import { CourseDialog } from '#/components/course-dialog'
+import { CourseIcon } from '#/components/course-icon'
 import { DateTimeText, DayWithRelative } from '#/components/date-time'
 import { DayTooltip } from '#/components/day-tooltip'
 import { Pill } from '#/components/kibo-ui/pill'
@@ -182,6 +183,9 @@ function CourseCard({
   const days = meetingDays(course)
   const time = meetingTime(course)
   const color = course.color ?? 'var(--primary)'
+  // Eight digit hex for the icon's backing tint. Only a real hex takes the
+  // alpha suffix, so a colourless course falls back to the muted surface.
+  const tint = course.color ? `${course.color}1f` : 'var(--muted)'
 
   const outstanding = items.filter((item) => item.status !== 'done')
   const finished = items.filter((item) => item.status === 'done')
@@ -197,11 +201,26 @@ function CourseCard({
       open={expanded}
     >
       <div className="flex items-start gap-3 p-3">
-        <span
-          aria-hidden="true"
-          className="mt-1.5 h-8 w-1 shrink-0 rounded-full"
-          style={{ backgroundColor: color }}
-        />
+        {/* The icon replaces the colour bar when there is one, since two
+            marks of the same colour side by side say nothing extra. */}
+        {course.icon ? (
+          <span
+            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md"
+            style={{ backgroundColor: tint }}
+          >
+            <CourseIcon
+              className="size-5"
+              color={course.color}
+              name={course.icon}
+            />
+          </span>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="mt-1.5 h-8 w-1 shrink-0 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+        )}
 
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-baseline gap-x-2">

@@ -3,14 +3,16 @@ import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '#/db'
 import { courses } from '#/db/schema'
+import { COURSE_ICON_NAMES } from '#/lib/course-icon'
 import { requireUser } from '#/lib/session.server'
-import { syncCourse } from './calendar.server'
+import { syncCourse, syncCourseItems } from './calendar.server'
 
 export interface CourseRow {
   id: number
   name: string
   code: string | null
   color: string | null
+  icon: string | null
   term: string | null
   termStart: string | null
   termEnd: string | null
@@ -35,6 +37,7 @@ export const listCourses = createServerFn({ method: 'GET' }).handler(
         name: courses.name,
         code: courses.code,
         color: courses.color,
+        icon: courses.icon,
         term: courses.term,
         termStart: courses.termStart,
         termEnd: courses.termEnd,
@@ -72,7 +75,22 @@ const timeOnly = z
 const courseInput = z.object({
   name: z.string().trim().min(1, 'Give it a name').max(200),
   code: z.string().max(40).nullable().transform(emptyToNull),
-  color: z.string().max(40).nullable().transform(emptyToNull),
+  // A hex, because that is what both the swatches and the picker produce, and
+  // what google-color.ts needs in order to find a Google colour for it.
+  color: z
+    .string()
+    .max(40)
+    .nullable()
+    .transform(emptyToNull)
+    .refine(
+      (value) => value === null || /^#[0-9a-fA-F]{6}$/.test(value),
+      'Use a six digit hex colour',
+    ),
+  // A closed list, so a stored name always resolves to an icon that exists.
+  icon: z
+    .enum(COURSE_ICON_NAMES as [string, ...string[]])
+    .nullable()
+    .catch(null),
   term: z.string().max(80).nullable().transform(emptyToNull),
   termStart: dateOnly,
   termEnd: dateOnly,
@@ -117,7 +135,20 @@ export const updateCourse = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     await requireUser()
     const { id, ...fields } = data
+
+    // Read the old colour before overwriting it. An item's calendar event
+    // carries its course's colour, so a recolour has to reach the items too,
+    // and there is no way to know it happened once the row is updated.
+    const [before] = await db
+      .select({ color: courses.color })
+      .from(courses)
+      .where(eq(courses.id, id))
+
     await db.update(courses).set(fields).where(eq(courses.id, id))
+
+    // Not awaited, so a slow Google call never holds up the response.
     void syncCourse(id)
+    if (before && before.color !== fields.color) void syncCourseItems(id)
+
     return { id }
   })

@@ -27,7 +27,8 @@ Built for a phone first. The base layout is one column with a bottom tab bar, an
   - [Running against Docker](#running-against-docker)
   - [Checks](#checks)
   - [Time zones](#time-zones)
-  - [Icons](#icons)
+  - [Course colours and icons](#course-colours-and-icons)
+  - [App icons](#app-icons)
 - [License](#license)
 
 </details>
@@ -35,10 +36,10 @@ Built for a phone first. The base layout is one column with a bottom tab bar, an
 ## What you get
 
 - A Today view that buckets items into overdue, today, this week and later
-- Courses with meeting days, term dates, rooms and instructor contacts
+- Courses with meeting days, term dates, rooms, instructor contacts, a colour and an icon
 - A journal with per-day entries, events and course links
 - File attachments on items and journal entries, stored in a private S3 bucket
-- Google Calendar sync onto a dedicated calendar named `loife`, never your primary one
+- Google Calendar sync onto a dedicated calendar named `loife`, never your primary one, carrying each course's colour through to Notion Calendar
 - A command palette and a history page that share one filter language
 - A syllabus parser that turns pasted dates into draft items
 - Light and dark themes, both checked against a 4.5:1 contrast floor
@@ -284,6 +285,7 @@ None of these need Docker or a database you started yourself.
 | `pnpm check:datetime` | Site-wide date and time formatting |
 | `pnpm check:search` | The filter language shared by the palette and history |
 | `pnpm check:contrast` | Every theme text pair clears 4.5:1 |
+| `pnpm check:color` | Course colours mapping onto Google's eleven |
 | `pnpm check:layout` | The Today page's saved section order |
 | `pnpm check:plan` | Day planning and busy windows |
 | `pnpm check:schedule` | Course meeting patterns and recurrence |
@@ -302,7 +304,19 @@ None of these need Docker or a database you started yourself.
 
 The display zone is pinned in [src/lib/datetime.ts](./src/lib/datetime.ts) rather than read from the browser. One person's calendar should read the same on a laptop and on a phone carried to another state. `TZ` does the same for the server, and the two have to agree.
 
-### Icons
+### Course colours and icons
+
+A course carries a hex colour and one of a hundred icons. Both appear wherever the course does: the Today list, the command palette, the course cards and the item detail.
+
+The colour also reaches your calendar. Google Calendar takes no hex. It takes one of eleven fixed event colours, and Notion Calendar draws an event in whatever colour Google reports for it. So [src/lib/google-color.ts](./src/lib/google-color.ts) maps a course colour onto the nearest of the eleven. It compares in CIE Lab rather than RGB. In RGB, pure blue and pure green sit as far apart as two blues you cannot tell apart. The formula is CIEDE2000, which corrects for the blues. Without that correction `#0000ff` lands on Grape instead of Blueberry.
+
+The eleven presets in the picker each land on a different one of Google's eleven. Pick a preset and Notion shows that colour exactly. Pick a custom colour and it rounds to the nearest, which the picker names under the swatches. `pnpm check:color` fails if two presets ever collide on one Google colour.
+
+Items inherit their course's colour, so a deadline and the class it belongs to land on one colour in Notion. Recolouring a course repushes its dated items, since their events hold the old colour until something rewrites them.
+
+Icons are lucide export names, listed in [src/lib/course-icon.ts](./src/lib/course-icon.ts) and imported by hand in [src/components/course-icon.tsx](./src/components/course-icon.tsx). A fixed hundred rather than all of lucide, so the bundle carries a hundred glyphs instead of sixteen hundred. The two lists are typed against each other, so dropping a name from one and not the other fails the build.
+
+### App icons
 
 `public/` holds one wordmark in six shapes: `favicon.svg`, `favicon.ico` (16/32/48), `apple-touch-icon.png`, and the three the manifest points at. All of them are the word "loife" traced out of Outfit at weight 800 with -0.02em of tracking, in `--primary`.
 

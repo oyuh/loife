@@ -9,6 +9,7 @@ import {
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { AttachmentsList, attachmentsKey } from '#/components/attachments-list'
+import { CourseIcon, hasCourseIcon } from '#/components/course-icon'
 import { DateField } from '#/components/date-field'
 import { MarkdownField } from '#/components/markdown-field'
 import { StagedFiles } from '#/components/staged-files'
@@ -345,13 +346,17 @@ function ItemForm({
             .map((course) => (
               <SelectItem key={course.id} value={String(course.id)}>
                 <span className="flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="size-2 shrink-0 rounded-full"
-                    style={{
-                      backgroundColor: course.color ?? 'var(--primary)',
-                    }}
-                  />
+                  {hasCourseIcon(course.icon) ? (
+                    <CourseIcon color={course.color} name={course.icon} />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="size-2 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: course.color ?? 'var(--primary)',
+                      }}
+                    />
+                  )}
                   {course.code
                     ? `${course.code} · ${course.name}`
                     : course.name}

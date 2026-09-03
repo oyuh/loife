@@ -2,10 +2,10 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '#/db'
-import { items, settings } from '#/db/schema'
+import { courses, items, settings } from '#/db/schema'
 import { listBusy, loadSettings } from '#/lib/google.server'
 import { requireUser } from '#/lib/session.server'
-import { syncItem } from './calendar.server'
+import { syncCourse, syncItem } from './calendar.server'
 
 // Only createServerFn wrappers live here. Their bodies are stripped from the
 // client build, whereas a plain exported function would keep google.server
@@ -23,7 +23,7 @@ export const reconcileCalendar = createServerFn({ method: 'POST' }).handler(
     const settings = await loadSettings()
     if (!settings?.googleRefreshToken) return { pushed: 0 }
 
-    const stale = await db
+    const staleItems = await db
       .select({ id: items.id })
       .from(items)
       .where(
@@ -34,8 +34,22 @@ export const reconcileCalendar = createServerFn({ method: 'POST' }).handler(
       )
       .limit(50)
 
-    for (const row of stale) await syncItem(row.id)
-    return { pushed: stale.length }
+    for (const row of staleItems) await syncItem(row.id)
+
+    // Courses too. A course event is written when the course is saved and
+    // never again, so a push that failed had no way back and a course edited
+    // while Google was down stayed wrong until someone opened and saved it.
+    const staleCourses = await db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(
+        or(isNull(courses.syncedAt), lt(courses.syncedAt, courses.updatedAt)),
+      )
+      .limit(50)
+
+    for (const row of staleCourses) await syncCourse(row.id)
+
+    return { pushed: staleItems.length + staleCourses.length }
   },
 )
 

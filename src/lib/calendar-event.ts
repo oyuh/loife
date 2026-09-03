@@ -1,3 +1,5 @@
+import { nearestGoogleColorId } from './google-color.ts'
+
 /**
  * Maps an item onto a Google Calendar event body.
  *
@@ -28,6 +30,12 @@ export interface CalendarEventBody {
   start: { date?: string; dateTime?: string; timeZone?: string }
   end: { date?: string; dateTime?: string; timeZone?: string }
   reminders?: { useDefault: boolean; overrides?: CalendarReminder[] }
+  /**
+   * One of Google's eleven event colours. Undefined leaves the event on the
+   * calendar's own colour, which is what every event did before courses could
+   * carry one.
+   */
+  colorId?: string
 }
 
 /**
@@ -90,10 +98,20 @@ export function localDateString(value: Date): string {
 
 export function toCalendarEvent(
   item: SyncableItem,
-  options: { courseLabel?: string | null; timeZone: string },
+  options: {
+    courseLabel?: string | null
+    /** The course's hex, which decides the event's Google colour. */
+    courseColor?: string | null
+    timeZone: string
+  },
 ): CalendarEventBody | null {
   // Nothing without a due date belongs on a calendar.
   if (!item.dueAt) return null
+
+  // An item takes its course's colour, so a deadline and the class it belongs
+  // to read as one thing in Notion Calendar. An item with no course keeps the
+  // calendar's own colour.
+  const colorId = nearestGoogleColorId(options.courseColor)
 
   const details = [
     options.courseLabel,
@@ -108,6 +126,7 @@ export function toCalendarEvent(
       : item.name,
     description: details.length ? details.join('\n') : undefined,
     location: item.location ?? undefined,
+    colorId,
   }
 
   if (item.allDay) {

@@ -1,4 +1,5 @@
 import { type CalendarEventBody, CLASS_REMINDERS } from './calendar-event.ts'
+import { nearestGoogleColorId } from './google-color.ts'
 
 /**
  * Turns a course's meeting pattern into one recurring Google Calendar event.
@@ -11,6 +12,8 @@ export interface MeetingCourse {
   name: string
   code: string | null
   location: string | null
+  /** Hex, mapped to the nearest Google event colour on the way out. */
+  color?: string | null
   /** 0 is Sunday through 6 is Saturday, matching Date.getDay(). */
   days: number[] | null
   /** Postgres `time` arrives as `10:00:00`, a form field gives `10:00`. */
@@ -135,26 +138,17 @@ export function toCourseEvent(
     )
   }
 
-  if (recurrence.length === 0) {
-    // A single explicit meeting and nothing else, which is a plain event.
-    return {
-      summary: course.code ? `${course.code} ${course.name}` : course.name,
-      location: course.location ?? undefined,
-      start: { dateTime: applyTime(anchor, startTime).toISOString(), timeZone },
-      end: { dateTime: applyTime(anchor, endTime).toISOString(), timeZone },
-      recurrence: [],
-      reminders: CLASS_REMINDERS,
-    }
-  }
-
-  return {
+  const base = {
     summary: course.code ? `${course.code} ${course.name}` : course.name,
     location: course.location ?? undefined,
     start: { dateTime: applyTime(anchor, startTime).toISOString(), timeZone },
     end: { dateTime: applyTime(anchor, endTime).toISOString(), timeZone },
-    recurrence,
     reminders: CLASS_REMINDERS,
+    colorId: nearestGoogleColorId(course.color),
   }
+
+  // A single explicit meeting and nothing else, which is a plain event.
+  return { ...base, recurrence: recurrence.length === 0 ? [] : recurrence }
 }
 
 /** Mon through Sun for the toggle chips, ordered the way a timetable reads. */

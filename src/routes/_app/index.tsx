@@ -18,6 +18,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AddItemDialog } from '#/components/add-item-dialog'
 import { Arrangeable, ArrangeableSection } from '#/components/arrangeable'
+import { CourseIcon } from '#/components/course-icon'
 import { ClockText } from '#/components/date-time'
 import { DayPlan } from '#/components/day-plan'
 import { InlineLog } from '#/components/inline-log'
@@ -331,7 +332,12 @@ function Today() {
                               </ItemTitle>
                               <ItemDescription className="flex flex-wrap items-center gap-x-2">
                                 {item.course && (
-                                  <span>
+                                  <span className="flex items-center gap-1">
+                                    <CourseIcon
+                                      className="size-3.5"
+                                      color={item.course.color}
+                                      name={item.course.icon}
+                                    />
                                     {item.course.code ?? item.course.name}
                                   </span>
                                 )}

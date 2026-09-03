@@ -30,6 +30,7 @@ export interface ItemRow {
     name: string
     code: string | null
     color: string | null
+    icon: string | null
   } | null
 }
 
@@ -61,6 +62,7 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
         courseName: courses.name,
         courseCode: courses.code,
         courseColor: courses.color,
+        courseIcon: courses.icon,
         // A correlated count rather than a join, so the row is not multiplied
         // by its attachments and then collapsed again.
         attachmentCount: sql<number>`(
@@ -72,7 +74,14 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
       .leftJoin(courses, eq(items.courseId, courses.id))
 
     return rows.map(
-      ({ courseId, courseName, courseCode, courseColor, ...item }) => ({
+      ({
+        courseId,
+        courseName,
+        courseCode,
+        courseColor,
+        courseIcon,
+        ...item
+      }) => ({
         ...item,
         course:
           courseId && courseName
@@ -81,6 +90,7 @@ export const listItems = createServerFn({ method: 'GET' }).handler(
                 name: courseName,
                 code: courseCode,
                 color: courseColor,
+                icon: courseIcon,
               }
             : null,
       }),

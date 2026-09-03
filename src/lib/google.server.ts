@@ -194,6 +194,12 @@ export interface CalendarEvent {
   end: { date?: string; dateTime?: string; timeZone?: string }
   /** Always sent, empty included, so a PUT can clear a former recurrence. */
   recurrence?: string[]
+  /**
+   * One of Google's eleven event colour ids. This is the only field that
+   * reaches Notion Calendar, which draws an event in whatever colour Google
+   * reports rather than anything loife could send directly.
+   */
+  colorId?: string
   reminders?: {
     useDefault: boolean
     overrides?: { method: string; minutes: number }[]

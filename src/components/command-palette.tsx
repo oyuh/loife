@@ -11,6 +11,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
+import { CourseIcon, hasCourseIcon } from '#/components/course-icon'
 import {
   CommandDialog,
   CommandGroup,
@@ -82,8 +83,16 @@ export function CommandPalette({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open, onOpenChange])
 
+  // courseIcon and courseColor sit here rather than on Searchable, because
+  // Searchable is the filter language's shape and neither is filterable.
   const index = useMemo<
-    (Searchable & { id: number; label: string; day: string | null })[]
+    (Searchable & {
+      id: number
+      label: string
+      day: string | null
+      courseIcon: string | null
+      courseColor: string | null
+    })[]
   >(() => {
     const fromItems = items.map((item) => ({
       id: item.id,
@@ -94,6 +103,8 @@ export function CommandPalette({
       body: item.notes ?? '',
       date: item.dueAt,
       courseCode: item.course?.code ?? item.course?.name ?? null,
+      courseIcon: item.course?.icon ?? null,
+      courseColor: item.course?.color ?? null,
       type: item.type,
       priority: item.priority,
       status: item.status,
@@ -113,6 +124,8 @@ export function CommandPalette({
       body: day.body ?? '',
       date: new Date(`${day.date}T00:00:00`),
       courseCode: null,
+      courseIcon: null,
+      courseColor: null,
       type: null,
       priority: null,
       status: null,
@@ -178,7 +191,16 @@ export function CommandPalette({
                     onSelect={() => run(() => onOpenItem(result.id))}
                     value={`item-${result.id}`}
                   >
-                    <CalendarCheck />
+                    {/* The course's own icon when it has one, so a result is
+                        identifiable before the label is read. */}
+                    {hasCourseIcon(result.courseIcon) ? (
+                      <CourseIcon
+                        color={result.courseColor}
+                        name={result.courseIcon}
+                      />
+                    ) : (
+                      <CalendarCheck />
+                    )}
                     <span className="truncate">{result.label}</span>
                     <CommandShortcut>
                       {[
