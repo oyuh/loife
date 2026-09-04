@@ -65,10 +65,12 @@ import { formatDayLong } from '#/lib/datetime'
 import { type MoveTarget, moveTargetDate } from '#/lib/move-targets'
 import { coursesQuery, itemsQuery } from '#/lib/queries'
 import {
+  readCollapsed,
   readOrder,
   reorder,
   SECTION_ORDER,
   type SectionId,
+  writeCollapsed,
   writeOrder,
 } from '#/lib/today-layout'
 import {
@@ -111,6 +113,9 @@ const PRIORITY_INDICATOR: Record<number, 'error' | 'warning' | 'success'> = {
 /** One movable block on the Today page. */
 type Section = { id: SectionId; label: string; node: ReactNode }
 
+/** The buckets that start folded away, until you say otherwise. */
+const DEFAULT_COLLAPSED = ['week', 'later', 'someday']
+
 function Today() {
   const { data: items } = useSuspenseQuery(itemsQuery)
   const queryClient = useQueryClient()
@@ -118,7 +123,7 @@ function Today() {
   // Collapsed rather than expanded, so the set stays empty in the common case
   // where everything is open.
   const [collapsed, setCollapsed] = useState<Set<string>>(
-    () => new Set(['week', 'later', 'someday']),
+    () => new Set(DEFAULT_COLLAPSED),
   )
   const [confirming, setConfirming] = useState<ItemRow | null>(null)
   const [viewing, setViewing] = useState<ItemRow | null>(null)
@@ -131,7 +136,11 @@ function Today() {
    * and a custom one lands on the first client render instead — a reordered
    * page moves once, just after it paints.
    */
-  useEffect(() => setOrder(readOrder()), [])
+  useEffect(() => {
+    setOrder(readOrder())
+    // Same reason: localStorage only exists once this is running in a browser.
+    setCollapsed(new Set(readCollapsed(DEFAULT_COLLAPSED)))
+  }, [])
 
   const moveSection = (from: SectionId, to: SectionId) => {
     // Reordering the whole list rather than the visible part of it, so a
@@ -146,6 +155,7 @@ function Today() {
       const next = new Set(previous)
       if (next.has(bucket)) next.delete(bucket)
       else next.add(bucket)
+      writeCollapsed(next)
       return next
     })
 
@@ -244,23 +254,34 @@ function Today() {
         label: group.label,
         node: (
           <Collapsible
+            // Closed it is a bar the same weight as the panels above it. Open
+            // it is a card, so the list reads as being inside something rather
+            // than as loose rows under a caption. No tint on either: a swiped
+            // row slides over an opaque background, so anything behind it
+            // would only show through the header.
+            className="rounded-lg border border-border"
             onOpenChange={() => toggleSection(group.bucket)}
             open={!collapsed.has(group.bucket)}
           >
-            <CollapsibleTrigger className="group mb-1 flex min-h-11 w-full items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-              <ChevronRight
-                aria-hidden="true"
-                className="size-3 transition-transform group-data-[state=open]:rotate-90"
-              />
+            <CollapsibleTrigger className="group flex min-h-12 w-full items-center gap-2.5 px-3 text-left">
               <span
-                className="size-1.5 rounded-full"
+                aria-hidden="true"
+                className="size-2 shrink-0 rounded-full"
                 style={{ backgroundColor: BUCKET_COLORS[group.bucket] }}
               />
-              {group.label}
-              <span className="ml-auto tabular-nums">{group.items.length}</span>
+              <span className="min-w-0 flex-1 truncate font-medium text-sm">
+                {group.label}
+              </span>
+              <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
+                {group.items.length}
+              </span>
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90"
+              />
             </CollapsibleTrigger>
 
-            <CollapsibleContent>
+            <CollapsibleContent className="border-border border-t px-3 py-1">
               <ItemGroup>
                 {group.items.map((item) => {
                   const done = item.status === 'done'

@@ -48,7 +48,17 @@ export function InlineLog() {
                  pb-[calc(var(--bottom-inset)+5.25rem)]
                  md:pb-4 md:pl-56"
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-2xl px-5">
+      {/*
+        The list dissolves into the page on its way to the composer rather
+        than sliding under it with a hard edge, which puts the eye on the
+        field. Behind the form only, so nothing above it is dimmed.
+      */}
+      <div
+        aria-hidden="true"
+        className="-top-24 absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent via-background/85 to-background"
+      />
+
+      <div className="pointer-events-auto relative mx-auto w-full max-w-2xl px-5">
         <form
           className="flex gap-2 rounded-lg border border-border bg-card p-2 shadow-lg"
           onSubmit={(event) => {

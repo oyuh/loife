@@ -92,3 +92,43 @@ export function writeOrder(order: readonly SectionId[]) {
     // Not worth interrupting a drag over.
   }
 }
+
+const COLLAPSED_KEY = 'loife:today-collapsed'
+
+/**
+ * How long a collapsed section stays collapsed.
+ *
+ * Long enough that folding "Later" away in the morning survives the day's
+ * tab reloads, short enough that yesterday's answer is not still hiding
+ * things the next time the page is opened.
+ */
+const COLLAPSED_TTL_MS = 5 * 60 * 60 * 1000
+
+/** The collapsed sections, or `fallback` if nothing was stored recently. */
+export function readCollapsed(fallback: readonly string[]): string[] {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY)
+    if (!raw) return [...fallback]
+    const { at, ids } = JSON.parse(raw)
+    if (!Array.isArray(ids) || Date.now() - at > COLLAPSED_TTL_MS) {
+      return [...fallback]
+    }
+    return ids.filter((id: unknown) => typeof id === 'string')
+  } catch {
+    // Private mode, a cleared store, or something that is no longer JSON.
+    return [...fallback]
+  }
+}
+
+export function writeCollapsed(ids: Iterable<string>) {
+  try {
+    localStorage.setItem(
+      COLLAPSED_KEY,
+      // Stamped on every write, so the five hours run from the last change
+      // rather than from the first one of the day.
+      JSON.stringify({ at: Date.now(), ids: [...ids] }),
+    )
+  } catch {
+    // Not worth interrupting a tap over.
+  }
+}

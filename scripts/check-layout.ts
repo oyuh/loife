@@ -9,10 +9,12 @@
  */
 import assert from 'node:assert/strict'
 import {
+  readCollapsed,
   reconcile,
   reorder,
   SECTION_ORDER,
   type SectionId,
+  writeCollapsed,
 } from '../src/lib/today-layout.ts'
 
 const DEFAULT = [...SECTION_ORDER]
@@ -129,5 +131,44 @@ for (const [from, to] of [
   assert.deepEqual([...out].sort(), [...DEFAULT].sort(), `${from} -> ${to}`)
 }
 console.log('ok  a move never loses or duplicates a section')
+
+// A stored set of collapsed sections, which expires rather than persisting.
+const store = new Map<string, string>()
+// @ts-expect-error a two-method stand-in is all these two functions touch.
+globalThis.localStorage = {
+  getItem: (key: string) => store.get(key) ?? null,
+  setItem: (key: string, value: string) => store.set(key, value),
+}
+
+const FALLBACK = ['week', 'later', 'someday']
+
+assert.deepEqual(readCollapsed(FALLBACK), FALLBACK)
+console.log('ok  nothing stored means the default sections are folded')
+
+writeCollapsed(['today'])
+assert.deepEqual(readCollapsed(FALLBACK), ['today'])
+console.log('ok  a saved set comes back, including one that folds less')
+
+writeCollapsed([])
+assert.deepEqual(readCollapsed(FALLBACK), [])
+console.log('ok  everything open is a state, not an empty store')
+
+// Five hours and a minute ago, which is the far side of the window.
+store.set(
+  'loife:today-collapsed',
+  JSON.stringify({ at: Date.now() - (5 * 60 + 1) * 60_000, ids: ['today'] }),
+)
+assert.deepEqual(readCollapsed(FALLBACK), FALLBACK)
+
+store.set(
+  'loife:today-collapsed',
+  JSON.stringify({ at: Date.now() - 4 * 60 * 60_000, ids: ['today'] }),
+)
+assert.deepEqual(readCollapsed(FALLBACK), ['today'])
+console.log('ok  a set older than five hours is forgotten, a newer one is not')
+
+store.set('loife:today-collapsed', 'not json')
+assert.deepEqual(readCollapsed(FALLBACK), FALLBACK)
+console.log('ok  junk in the store falls back rather than throwing')
 
 console.log('\nlayout checks passed')
