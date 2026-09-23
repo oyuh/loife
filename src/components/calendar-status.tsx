@@ -71,6 +71,11 @@ export function CalendarStatus() {
         <RefreshCw />
         {push.isPending ? 'Pushing…' : 'Push now'}
       </Button>
+      {/* A grant Google revoked still reads as connected until the next sync
+          trips over it, so connecting again has to be reachable from here. */}
+      <Button asChild className="min-h-11" size="sm" variant="ghost">
+        <a href="/api/google/connect">Reconnect</a>
+      </Button>
     </div>
   )
 }
