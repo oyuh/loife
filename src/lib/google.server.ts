@@ -47,8 +47,16 @@ interface TokenResponse {
   access_token?: string
   refresh_token?: string
   expires_in?: number
+  error?: string
   error_description?: string
 }
+
+/**
+ * Google answers `invalid_grant` when the refresh token is dead: revoked,
+ * unused for six months, or seven days old on an app still in Testing. No retry
+ * can fix that, only connecting again.
+ */
+export class GoogleGrantRevokedError extends Error {}
 
 async function postToken(body: Record<string, string>): Promise<TokenResponse> {
   const response = await fetch(TOKEN_URL, {
@@ -59,8 +67,16 @@ async function postToken(body: Record<string, string>): Promise<TokenResponse> {
 
   const payload = (await response.json()) as TokenResponse
   if (!response.ok) {
+    if (
+      payload.error === 'invalid_grant' &&
+      body.grant_type === 'refresh_token'
+    ) {
+      throw new GoogleGrantRevokedError(
+        'Google revoked the calendar grant. Connect Google Calendar again.',
+      )
+    }
     throw new Error(
-      `Google token request failed with ${response.status}: ${payload.error_description ?? 'no reason given'}`,
+      `Google token request failed with ${response.status}: ${payload.error ?? ''} ${payload.error_description ?? 'no reason given'}`,
     )
   }
   return payload
@@ -99,12 +115,28 @@ async function accessToken(): Promise<string> {
     throw new Error('Google Calendar is not connected yet.')
   }
 
-  const payload = await postToken({
-    client_id: requireEnv('GOOGLE_CLIENT_ID'),
-    client_secret: requireEnv('GOOGLE_CLIENT_SECRET'),
-    refresh_token: row.googleRefreshToken,
-    grant_type: 'refresh_token',
-  })
+  let payload: TokenResponse
+  try {
+    payload = await postToken({
+      client_id: requireEnv('GOOGLE_CLIENT_ID'),
+      client_secret: requireEnv('GOOGLE_CLIENT_SECRET'),
+      refresh_token: row.googleRefreshToken,
+      grant_type: 'refresh_token',
+    })
+  } catch (error) {
+    // Dropping the dead token is what stops the retries. Every sync checks for
+    // a grant first, the sweep skips when there is none, and the settings page
+    // goes back to offering to connect. The calendar id stays, so connecting
+    // again reuses the same calendar and its events.
+    if (error instanceof GoogleGrantRevokedError) {
+      await db
+        .update(settings)
+        .set({ googleRefreshToken: null })
+        .where(eq(settings.id, 1))
+      console.warn(error.message)
+    }
+    throw error
+  }
 
   if (!payload.access_token) throw new Error('Google returned no access token')
 

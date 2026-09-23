@@ -5,12 +5,16 @@ import { toCalendarEvent } from '#/lib/calendar-event'
 import { toCourseEvent } from '#/lib/course-event'
 import {
   deleteEvent,
+  GoogleGrantRevokedError,
   insertEvent,
   loadSettings,
   updateEvent,
 } from '#/lib/google.server'
 
 const timeZone = () => process.env.TZ ?? 'America/Chicago'
+
+// A revoked grant is logged once where it is caught, in accessToken, and the
+// token is cleared there, so the sync sites stay quiet about it.
 
 /**
  * Pushes one item to Google Calendar. The database is the source of truth and
@@ -77,7 +81,8 @@ export async function syncItem(itemId: number): Promise<void> {
     const eventId = await insertEvent(event)
     await markSynced(itemId, eventId)
   } catch (error) {
-    console.error(`calendar sync failed for item ${itemId}:`, error)
+    if (!(error instanceof GoogleGrantRevokedError))
+      console.error(`calendar sync failed for item ${itemId}:`, error)
   }
 }
 
@@ -128,7 +133,8 @@ export async function removeItemEvent(eventId: string | null): Promise<void> {
   try {
     await deleteEvent(eventId)
   } catch (error) {
-    console.error('calendar delete failed:', error)
+    if (!(error instanceof GoogleGrantRevokedError))
+      console.error('calendar delete failed:', error)
   }
 }
 
@@ -177,7 +183,8 @@ export async function syncCourse(courseId: number): Promise<void> {
     const eventId = await insertEvent(event)
     await markCourseSynced(courseId, eventId)
   } catch (error) {
-    console.error(`calendar sync failed for course ${courseId}:`, error)
+    if (!(error instanceof GoogleGrantRevokedError))
+      console.error(`calendar sync failed for course ${courseId}:`, error)
   }
 }
 
